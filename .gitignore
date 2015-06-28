@@ -1,5 +1,5 @@
 mandelbrot
 mandelbrot.exe
-mandelbrot_headless
-mandelbrot_headless.exe
+mandelbrot_render
+mandelbrot_render.exe
 *.ppm

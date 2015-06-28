@@ -33,8 +33,6 @@ complex * cstore;
 double * istore;
 rgb * tex;
 
-rgb * rtex;
-
 int screenW, screenH;
 
 GLuint gltex;
@@ -63,10 +61,8 @@ int livenextline = -1;
 pthread_mutex_t mliveline;
 pthread_mutex_t mliveworking;
 
-int renderworking = 0;
-int rendernextline = -1;
-pthread_mutex_t mrenderline;
-pthread_mutex_t mrenderworking;
+FILE* renderpipe;
+char renderstate[256] = "";
 
 complex f(complex x, complex c)
 {
@@ -175,73 +171,6 @@ void * tliverender(void * a)
       pthread_mutex_lock(&mliveworking);
       liveworking--;
       pthread_mutex_unlock(&mliveworking);
-   }
-}
-
-void renderline(int y)
-{
-   int x;
-   int index = y * screenW * 8;
-   for(x = 0; x < screenW * 8; x++)
-   {
-      int iter = 0;
-      int fin = 0;
-      complex c = center;
-      complex r = {0, 0};
-      c.r += (x - screenW * 8 / 2) * scale / screenH / 8;
-      c.i += (y - screenH * 8 / 2) * scale / screenH / 8;
-      while(iter < maxiter && !fin)
-      {
-         double sqr;
-         iter++;
-         r = f(r, c);
-         sqr = cabssqr(r);
-         if(sqr >= 1e10)
-         {
-            fin = 1;
-            rtex[index] = color(iter - log( 0.5 * log(sqr) / log(2) ) / log(2));
-         }
-      }
-      index++;
-   }
-}
-
-void * trender(void * a)
-{
-   referenceUnusedParameter(a);
-   for(;;)
-   {
-      Sleep(1);
-      pthread_mutex_lock(&mrenderline);
-      if(rendernextline < 0 || rendernextline >= screenH * 8)
-      {
-         pthread_mutex_unlock(&mrenderline);
-         continue;
-      }
-      else
-      {
-         pthread_mutex_lock(&mrenderworking);
-         renderworking++;
-         pthread_mutex_unlock(&mrenderworking);
-         for(;;)
-         {
-            int line = rendernextline;
-            if(rendernextline < 0 || rendernextline >= screenH * 8)
-            {
-               pthread_mutex_unlock(&mrenderline);
-               break;
-            }
-            rendernextline++;
-            pthread_mutex_unlock(&mrenderline);
-            
-            renderline(line);
-            
-            pthread_mutex_lock(&mrenderline);
-         }
-      }
-      pthread_mutex_lock(&mrenderworking);
-      renderworking--;
-      pthread_mutex_unlock(&mrenderworking);
    }
 }
 
@@ -411,6 +340,12 @@ void drawIter(void)
    sprintf(buffer, "pf %d", iterperframe);
    glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
 
+   if(renderpipe)
+   {
+      glRasterPos2f(10, screenH - 50);
+      glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)renderstate);
+   }
+   
    glRasterPos2f(10, screenH - 35);
    sprintf(buffer, "height %.15lf", scale);
    glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
@@ -468,41 +403,35 @@ void draw(void)
    glutSwapBuffers();
 }
 
+void* pipereader(void* a)
+{
+   referenceUnusedParameter(a);
+   for(;;)
+   {
+      if(renderpipe)
+      {
+         if(!fgets(renderstate, 255, renderpipe))
+         {
+            fclose(renderpipe);
+            renderpipe = NULL;
+         }
+      }
+      else
+      {
+         Sleep(100);
+      }
+   }
+}
+
 void render(void)
 {
-   char buffer[256];
-   FILE*  out;
-   long timestamp;
-
-   rtex = malloc(sizeof(rgb) * screenW * 8 * screenH * 8);
-   memset(rtex, 0, sizeof(rgb) * screenW * 8 * screenH * 8);
-   
-   rendernextline = 0;
-   perc = 0;
-   
-   while(rendernextline < screenH * 8 || renderworking)
+   if(!renderpipe)
    {
-      int percnew = rendernextline * 100 / screenH / 8;
-      if(perc != percnew)
-      {
-         perc = percnew;
-         draw();
-      }
-      Sleep(1);
+      char buffer[512];
+      renderstate[0] = 0;
+      sprintf(buffer, "./mandelbrot_render 8 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+      renderpipe = popen(buffer, "r");
    }
-   
-   rendernextline = -1;
-   perc = 0;
-   
-   timestamp = (long)time(0);
-   sprintf(buffer, "%ld.ppm", timestamp);
-
-   out = fopen(buffer, "wb");
-   fprintf(out, "P6\n#center: %0.16lf, %0.16lfi\n#scale: %0.16lf\n%d %d\n255\n", center.r, center.i, scale, screenW * 8, screenH * 8);
-   fwrite(rtex, sizeof(rgb), screenW * 8 * screenH * 8, out);
-   fclose(out);
-
-   free(rtex);
 }
 
 static void key(unsigned char key, int x, int y)
@@ -579,8 +508,17 @@ static void key(unsigned char key, int x, int y)
       case 'r':
          render();
          return;
-      case 'p':
-         printf("%.16lf %.16lf %.16lf %d %d %d\n", center.r, center.i, scale, startiter, enditer, maxiter);
+      case '0':
+         center.r = 0;
+         center.i = 0;
+         scale = 4.0;
+         er = 3.0;
+         eg = 0.75;
+         eb = 0.5;
+         startiter = -4;
+         enditer = 77;
+         maxiter = 8192;
+         clear();
          return;
    }
    lastchange = glutGet(GLUT_ELAPSED_TIME);
@@ -709,14 +647,11 @@ int main(int argc, char* argv[])
    pthread_mutex_init(&mliveline,    NULL);
    pthread_mutex_init(&mliveworking, NULL);
    
-   pthread_mutex_init(&mrenderline,    NULL);
-   pthread_mutex_init(&mrenderworking, NULL);
-   
    for(i = 0; i < 8; ++i)
    {
       pthread_create(&thread, NULL, tliverender, NULL);
-      pthread_create(&thread, NULL, trender,     NULL);
    }
+   pthread_create(&thread, NULL, pipereader, NULL);
    
    glutMainLoop();
 
