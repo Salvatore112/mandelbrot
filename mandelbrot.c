@@ -488,7 +488,7 @@ void render(void)
          perc = percnew;
          draw();
       }
-      sched_yield();
+      Sleep(1);
    }
    
    rendernextline = -1;

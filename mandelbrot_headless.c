@@ -4,7 +4,6 @@
 #include <time.h>
 #include <math.h>
 #include <pthread.h>
-#include <sched.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -169,7 +168,7 @@ void render(void)
          printf("\rProgress: %3d%%", perc);
          fflush(stdout);
       }
-      sched_yield();
+      Sleep(1);
    }
 
    printf("\rDone.          \n");
