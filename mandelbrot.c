@@ -39,8 +39,8 @@ int screenW, screenH;
 
 GLuint gltex;
 int iter;
-complex center = {0, 0};
 complex pointer = {0, 0};
+complex center = {0, 0};
 double scale = 4;
 int perc = 0;
 
@@ -58,10 +58,15 @@ int mpress = 0;
 int mpressx1, mpressy1, mpressx2, mpressy2;
 int iterperframe = 16;
 
-int threadsworking = 0;
-int threadsnextline = -1;
-pthread_mutex_t mutexline;
-pthread_mutex_t mutexwork;
+int liveworking = 0;
+int livenextline = -1;
+pthread_mutex_t mliveline;
+pthread_mutex_t mliveworking;
+
+int renderworking = 0;
+int rendernextline = -1;
+pthread_mutex_t mrenderline;
+pthread_mutex_t mrenderworking;
 
 complex f(complex x, complex c)
 {
@@ -103,7 +108,7 @@ void clear(void)
    iterperframe = 16;
 }
 
-void renderline(int y)
+void liverenderline(int y)
 {
    int x;
    int index = y * screenW;
@@ -134,42 +139,109 @@ void renderline(int y)
    }
 }
 
-void * renderthread(void * a)
+void * tliverender(void * a)
 {
    referenceUnusedParameter(a);
    for(;;)
    {
       Sleep(1);
-      pthread_mutex_lock(&mutexline);
-      if(threadsnextline < 0 || threadsnextline >= screenH)
+      pthread_mutex_lock(&mliveline);
+      if(livenextline < 0 || livenextline >= screenH)
       {
-         pthread_mutex_unlock(&mutexline);
+         pthread_mutex_unlock(&mliveline);
          continue;
       }
       else
       {
-         pthread_mutex_lock(&mutexwork);
-         threadsworking++;
-         pthread_mutex_unlock(&mutexwork);
+         pthread_mutex_lock(&mliveworking);
+         liveworking++;
+         pthread_mutex_unlock(&mliveworking);
          for(;;)
          {
-            int line = threadsnextline;
-            if(threadsnextline < 0 || threadsnextline >= screenH)
+            int line = livenextline;
+            if(livenextline < 0 || livenextline >= screenH)
             {
-               pthread_mutex_unlock(&mutexline);
+               pthread_mutex_unlock(&mliveline);
                break;
             }
-            threadsnextline++;
-            pthread_mutex_unlock(&mutexline);
+            livenextline++;
+            pthread_mutex_unlock(&mliveline);
+            
+            liverenderline(line);
+            
+            pthread_mutex_lock(&mliveline);
+         }
+      }
+      pthread_mutex_lock(&mliveworking);
+      liveworking--;
+      pthread_mutex_unlock(&mliveworking);
+   }
+}
+
+void renderline(int y)
+{
+   int x;
+   int index = y * screenW * 8;
+   for(x = 0; x < screenW * 8; x++)
+   {
+      int iter = 0;
+      int fin = 0;
+      complex c = center;
+      complex r = {0, 0};
+      c.r += (x - screenW * 8 / 2) * scale / screenH / 8;
+      c.i += (y - screenH * 8 / 2) * scale / screenH / 8;
+      while(iter < maxiter && !fin)
+      {
+         double sqr;
+         iter++;
+         r = f(r, c);
+         sqr = cabssqr(r);
+         if(sqr >= 1e10)
+         {
+            fin = 1;
+            rtex[index] = color(iter - log( 0.5 * log(sqr) / log(2) ) / log(2));
+         }
+      }
+      index++;
+   }
+}
+
+void * trender(void * a)
+{
+   referenceUnusedParameter(a);
+   for(;;)
+   {
+      Sleep(1);
+      pthread_mutex_lock(&mrenderline);
+      if(rendernextline < 0 || rendernextline >= screenH * 8)
+      {
+         pthread_mutex_unlock(&mrenderline);
+         continue;
+      }
+      else
+      {
+         pthread_mutex_lock(&mrenderworking);
+         renderworking++;
+         pthread_mutex_unlock(&mrenderworking);
+         for(;;)
+         {
+            int line = rendernextline;
+            if(rendernextline < 0 || rendernextline >= screenH * 8)
+            {
+               pthread_mutex_unlock(&mrenderline);
+               break;
+            }
+            rendernextline++;
+            pthread_mutex_unlock(&mrenderline);
             
             renderline(line);
             
-            pthread_mutex_lock(&mutexline);
+            pthread_mutex_lock(&mrenderline);
          }
       }
-      pthread_mutex_lock(&mutexwork);
-      threadsworking--;
-      pthread_mutex_unlock(&mutexwork);
+      pthread_mutex_lock(&mrenderworking);
+      renderworking--;
+      pthread_mutex_unlock(&mrenderworking);
    }
 }
 
@@ -189,14 +261,14 @@ void idle(void)
       
       time1 = glutGet(GLUT_ELAPSED_TIME);
       
-      threadsnextline = 0;
+      livenextline = 0;
       
-      while(threadsnextline < screenH || threadsworking)
+      while(livenextline < screenH || liveworking)
       {
          sched_yield();
       }
       
-      threadsnextline = -1;
+      livenextline = -1;
       
       iter += iterperframe;
       
@@ -300,6 +372,7 @@ void drawIter(void)
 {
    char buffer[64];
    glRasterPos2f(10, 35);
+
    if(perc)
    {
       sprintf(buffer, "%d%%", perc);
@@ -397,59 +470,35 @@ void draw(void)
 
 void render(void)
 {
-   int x, y;
-   int index = 0;
    char buffer[256];
    FILE*  out;
    long timestamp;
 
    rtex = malloc(sizeof(rgb) * screenW * 8 * screenH * 8);
    memset(rtex, 0, sizeof(rgb) * screenW * 8 * screenH * 8);
-
-   for(y = 0; y < screenH * 8; y++)
+   
+   rendernextline = 0;
+   perc = 0;
+   
+   while(rendernextline < screenH * 8 || renderworking)
    {
-      int percnew;
-      for(x = 0; x < screenW * 8; x++)
-      {
-         int iter;
-         int fin = 0;
-         complex c = center;
-         complex r = {0, 0};
-         c.r += (x - screenW * 8 / 2) * scale / screenH / 8;
-         c.i += (y - screenH * 8 / 2) * scale / screenH / 8;
-         for(iter = 0; iter < maxiter && !fin;)
-         {
-            double sqr;
-            iter++;
-            r = f(r, c);
-            sqr = cabssqr(r);
-            if(sqr >= 1e23)
-            {
-               fin = 1;
-               rtex[index] = color(iter - log( 0.5 * log(sqr) / log(2) ) / log(2));
-            }
-         }
-         index++;
-      }
-      percnew = y * 100 / screenH / 8;
+      int percnew = rendernextline * 100 / screenH / 8;
       if(perc != percnew)
       {
          perc = percnew;
          draw();
       }
+      sched_yield();
    }
+   
+   rendernextline = -1;
    perc = 0;
    
    timestamp = (long)time(0);
    sprintf(buffer, "%ld.ppm", timestamp);
 
    out = fopen(buffer, "wb");
-   fprintf(out, "P6\n#%0.16lf / i * %0.16lf\n#%0.16lf / i * %0.16lf\n%d %d\n255\n", 
-      center.r - (screenW / 2) * scale / screenH,
-      center.i - (screenH / 2) * scale / screenH,
-      center.r + (screenW / 2) * scale / screenH,
-      center.i + (screenH / 2) * scale / screenH,
-      screenW * 8, screenH * 8);
+   fprintf(out, "P6\n#center: %0.16lf, %0.16lfi\n#scale: %0.16lf\n%d %d\n255\n", center.r, center.i, scale, screenW * 8, screenH * 8);
    fwrite(rtex, sizeof(rgb), screenW * 8 * screenH * 8, out);
    fclose(out);
 
@@ -630,13 +679,12 @@ static void reshape(int w, int h)
 int main(int argc, char* argv[])
 {
    int i;
-   pthread_t thread[8];
+   pthread_t thread;
 
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
    glutCreateWindow("Mandelbrot");
 
-   //glutFullScreen();
    glutReshapeWindow(800, 500);
 
    glutIdleFunc(idle);
@@ -655,12 +703,16 @@ int main(int argc, char* argv[])
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    
-   pthread_mutex_init(&mutexline, NULL);
-   pthread_mutex_init(&mutexwork, NULL);
+   pthread_mutex_init(&mliveline,    NULL);
+   pthread_mutex_init(&mliveworking, NULL);
+   
+   pthread_mutex_init(&mrenderline,    NULL);
+   pthread_mutex_init(&mrenderworking, NULL);
    
    for(i = 0; i < 8; ++i)
    {
-      pthread_create(&thread[i], NULL, renderthread, 0);
+      pthread_create(&thread, NULL, tliverender, NULL);
+      pthread_create(&thread, NULL, trender,     NULL);
    }
    
    glutMainLoop();
