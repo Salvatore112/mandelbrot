@@ -37,8 +37,8 @@ int h;
 complex center;
 double scale;
 
-double startiter;
-double enditer;
+int startiter;
+int enditer;
 int maxiter;
 
 double er = 3.0;

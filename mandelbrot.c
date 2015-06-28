@@ -47,8 +47,8 @@ int perc = 0;
 double er = 3.0;
 double eg = 0.75;
 double eb = 0.5;
-double startiter = -4;
-double enditer = 77;
+int startiter = -4;
+int enditer = 77;
 int maxiter = 8192;
 
 unsigned long lastchange = 0;
@@ -396,11 +396,11 @@ void drawIter(void)
    glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
 
    glRasterPos2f(10, 95);
-   sprintf(buffer, "si %.0lf", startiter);
+   sprintf(buffer, "si %d", startiter);
    glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
 
    glRasterPos2f(10, 110);
-   sprintf(buffer, "ei %.0lf", enditer);
+   sprintf(buffer, "ei %d", enditer);
    glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
 
    glRasterPos2f(10, 125);
@@ -578,6 +578,9 @@ static void key(unsigned char key, int x, int y)
          return;
       case 'r':
          render();
+         return;
+      case 'p':
+         printf("%.16lf %.16lf %.16lf %d %d %d\n", center.r, center.i, scale, startiter, enditer, maxiter);
          return;
    }
    lastchange = glutGet(GLUT_ELAPSED_TIME);
