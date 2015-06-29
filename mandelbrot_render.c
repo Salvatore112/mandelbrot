@@ -8,6 +8,8 @@
 #ifndef _WIN32
 #include <unistd.h>
 #define Sleep(x) usleep((x)*1000)
+#else
+#include <windows.h>
 #endif
 
 #define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))

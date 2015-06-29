@@ -9,6 +9,8 @@
 #ifndef _WIN32
 #include <unistd.h>
 #define Sleep(x) usleep((x)*1000)
+#else
+#define popen(x, y) _popen((x), (y))
 #endif
 
 #define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
@@ -429,7 +431,11 @@ void render(void)
    {
       char buffer[512];
       renderstate[0] = 0;
+      #ifdef _WIN32
+      sprintf(buffer, "mandelbrot_render.exe 8 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+      #else
       sprintf(buffer, "./mandelbrot_render 8 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+      #endif
       renderpipe = popen(buffer, "r");
    }
 }

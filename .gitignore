@@ -3,3 +3,5 @@ mandelbrot.exe
 mandelbrot_render
 mandelbrot_render.exe
 *.ppm
+freeglut.dll
+pthreadVC2.dll
