@@ -51,7 +51,7 @@ int rendernextline = -1;
 pthread_mutex_t mrenderline;
 pthread_mutex_t mrenderworking;
 
-complex fn(complex x, complex c, double *sqr)
+complex f(complex x, complex c, double *sqr)
 {
    // complex numbers: x * x + c;
    complex res;
@@ -61,20 +61,6 @@ complex fn(complex x, complex c, double *sqr)
    res.i = 2 * x.r * x.i + c.i;
    *sqr = r2 + i2;
    return res;
-}
-
-complex f(complex x, complex c)
-{
-   // complex numbers: x * x + c;
-   complex res;
-   res.r = x.r * x.r - x.i * x.i + c.r;
-   res.i = 2 * x.r * x.i + c.i;
-   return res;
-}
-
-double cabssqr(complex c)
-{
-   return c.i * c.i + c.r * c.r;
 }
 
 rgb color(double iter)
@@ -109,10 +95,7 @@ void renderline(int y)
       while(iter < maxiter && !fin)
       {
          double sqr;
-         r = fn(r, c, &sqr);
-         //r = f(r, c);
-         //sqr = cabssqr(r);
-         //iter++;
+         r = f(r, c, &sqr);
          if(sqr >= 1e10)
          {
             fin = 1;

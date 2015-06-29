@@ -66,18 +66,16 @@ pthread_mutex_t mliveworking;
 FILE* renderpipe;
 char renderstate[256] = "";
 
-complex f(complex x, complex c)
+complex f(complex x, complex c, double *sqr)
 {
    // complex numbers: x * x + c;
    complex res;
-   res.r = x.r * x.r - x.i * x.i + c.r;
+   double r2 = x.r * x.r;
+   double i2 = x.i * x.i;
+   res.r = r2 - i2 + c.r;
    res.i = 2 * x.r * x.i + c.i;
+   *sqr = r2 + i2;
    return res;
-}
-
-double cabssqr(complex c)
-{
-   return c.i * c.i + c.r * c.r;
 }
 
 rgb color(double iter)
@@ -121,9 +119,7 @@ void liverenderline(int y)
          while(istore[index] < 1e-23 && localiter < iterperframe)
          {
             double sqr;
-            localiter++;
-            cstore[index] = f(cstore[index], c);
-            sqr = cabssqr(cstore[index]);
+            cstore[index] = f(cstore[index], c, &sqr);
             if(sqr >= 1e10)
             {
                double diter = iter + localiter - log( 0.5 * log(sqr) / log(2) ) / log(2);
@@ -131,6 +127,7 @@ void liverenderline(int y)
                istore[index] = diter;
                tex[index] = color(istore[index]);
             }
+            localiter++;
          }
       }
       index++;
