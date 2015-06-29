@@ -51,6 +51,18 @@ int rendernextline = -1;
 pthread_mutex_t mrenderline;
 pthread_mutex_t mrenderworking;
 
+complex fn(complex x, complex c, double *sqr)
+{
+   // complex numbers: x * x + c;
+   complex res;
+   double r2 = x.r * x.r;
+   double i2 = x.i * x.i;
+   res.r = r2 - i2 + c.r;
+   res.i = 2 * x.r * x.i + c.i;
+   *sqr = r2 + i2;
+   return res;
+}
+
 complex f(complex x, complex c)
 {
    // complex numbers: x * x + c;
@@ -97,14 +109,16 @@ void renderline(int y)
       while(iter < maxiter && !fin)
       {
          double sqr;
-         iter++;
-         r = f(r, c);
-         sqr = cabssqr(r);
+         r = fn(r, c, &sqr);
+         //r = f(r, c);
+         //sqr = cabssqr(r);
+         //iter++;
          if(sqr >= 1e10)
          {
             fin = 1;
             rtex[index] = color(iter - log( 0.5 * log(sqr) / log(2) ) / log(2));
          }
+         iter++;
       }
       index++;
    }
@@ -153,12 +167,13 @@ void render(void)
 {
    char buffer[256];
    FILE*  out;
-   long timestamp;
+   long timestamp, t2;
    int perc = 0;
 
    rtex = malloc(sizeof(rgb) * w * h);
    memset(rtex, 0, sizeof(rgb) * w * h);
    
+   t2 = (long)time(0);
    rendernextline = 0;
    
    while(rendernextline < h || renderworking)
@@ -179,6 +194,7 @@ void render(void)
    perc = 0;
    
    timestamp = (long)time(0);
+   printf("%ld s\n", timestamp - t2);
    sprintf(buffer, "%ld.ppm", timestamp);
 
    out = fopen(buffer, "wb");
@@ -219,7 +235,7 @@ int main(int argc, char* argv[])
    er = atof(argv[10]);
    eg = atof(argv[11]);
    eb = atof(argv[12]);
-
+   
    render();
    
    return 0;
