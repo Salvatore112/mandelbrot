@@ -87,19 +87,18 @@ void renderline(int y)
    for(x = 0; x < w; x++)
    {
       int iter = 0;
-      int fin = 0;
       complex c = center;
       complex r = {0, 0};
       c.r += (x - w / 2) * scale / h;
       c.i += (y - h / 2) * scale / h;
-      while(iter < maxiter && !fin)
+      while(iter < maxiter)
       {
          double sqr;
          r = f(r, c, &sqr);
          if(sqr >= 1e10)
          {
-            fin = 1;
             rtex[index] = color(iter - log( 0.5 * log(sqr) / log(2) ) / log(2));
+            break;
          }
          iter++;
       }
