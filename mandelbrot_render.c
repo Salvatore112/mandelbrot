@@ -149,13 +149,13 @@ void render(void)
 {
    char buffer[256];
    FILE*  out;
-   long timestamp, t2;
+   long t1, t2;
    int perc = 0;
 
    rtex = malloc(sizeof(rgb) * w * h);
    memset(rtex, 0, sizeof(rgb) * w * h);
    
-   t2 = (long)time(0);
+   t1 = (long)time(0);
    rendernextline = 0;
    
    while(rendernextline < h || renderworking)
@@ -170,14 +170,11 @@ void render(void)
       Sleep(1);
    }
 
-   printf("Done.\n");
-
+   t2 = (long)time(0);
    rendernextline = -1;
-   perc = 0;
    
-   timestamp = (long)time(0);
-   printf("%ld s\n", timestamp - t2);
-   sprintf(buffer, "%ld.ppm", timestamp);
+   printf("Done (%ld s).\n", t2 - t1);
+   sprintf(buffer, "%ld.ppm", t2);
 
    out = fopen(buffer, "wb");
    fprintf(out, "P6\n#center: %0.16lf, %0.16lfi\n#scale: %0.16lf\n%d %d\n255\n", center.r, center.i, scale, w, h);
