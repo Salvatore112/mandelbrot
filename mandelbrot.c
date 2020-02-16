@@ -23,7 +23,8 @@ typedef struct
    unsigned char r;
    unsigned char g;
    unsigned char b;
-} rgb;
+   unsigned char a;
+} rgba;
 
 typedef struct
 {
@@ -33,7 +34,7 @@ typedef struct
 
 complex * cstore;
 double * istore;
-rgb * tex;
+rgba * tex;
 
 int screenW, screenH;
 
@@ -51,7 +52,7 @@ int startiter = -4;
 int enditer = 77;
 int maxiter = 8192;
 
-unsigned long lastchange = 0;
+int lastchange = 0;
 int redrawflag = 0;
 int reshapeNeeded = 0;
 int mpress = 0;
@@ -78,9 +79,9 @@ complex f(complex x, complex c, double *sqr)
    return res;
 }
 
-rgb color(double iter)
+rgba color(double iter)
 {
-   rgb res;
+   rgba res;
    double r, g, b, c;
 
    c = (iter - startiter) / (enditer - startiter);
@@ -88,9 +89,9 @@ rgb color(double iter)
    g = pow(c, eg);
    b = pow(c, eb);
 
-   res.r = LIMIT(r, 0.0, 1.0) * 255;
-   res.g = LIMIT(g, 0.0, 1.0) * 255;
-   res.b = LIMIT(b, 0.0, 1.0) * 255;
+   res.r = (unsigned char)(LIMIT(r, 0.0, 1.0) * 255);
+   res.g = (unsigned char)(LIMIT(g, 0.0, 1.0) * 255);
+   res.b = (unsigned char)(LIMIT(b, 0.0, 1.0) * 255);
 
    return res;
 }
@@ -98,8 +99,8 @@ rgb color(double iter)
 void clear(void)
 {
    memset(cstore, 0, sizeof(complex) * screenW * screenH);
-   memset(istore, 0, sizeof(double) * screenW * screenH);
-   memset(tex, 0, sizeof(rgb) * screenW * screenH);
+   memset(istore, 0, sizeof(double)  * screenW * screenH);
+   memset(tex,    0, sizeof(rgba)    * screenW * screenH);
    iter = 0;
    iterperframe = 16;
 }
@@ -161,9 +162,9 @@ void * tliverender(void * a)
             }
             livenextline++;
             pthread_mutex_unlock(&mliveline);
-            
+
             liverenderline(line);
-            
+
             pthread_mutex_lock(&mliveline);
          }
       }
@@ -184,22 +185,22 @@ void idle(void)
 
    if(iter < maxiter)
    {
-      unsigned long time1;
-      unsigned long time2;
-      
+      int time1;
+      int time2;
+
       time1 = glutGet(GLUT_ELAPSED_TIME);
-      
+
       livenextline = 0;
-      
+
       while(livenextline < screenH || liveworking)
       {
          sched_yield();
       }
-      
+
       livenextline = -1;
-      
+
       iter += iterperframe;
-      
+
       time2 = glutGet(GLUT_ELAPSED_TIME);
       if(time2 < time1 + 20)
       {
@@ -233,10 +234,10 @@ void redraw(void)
 
 void autoColor(void)
 {
-   int x, y;
-   int index = 0;
+   int  x, y;
+   int  index = 0;
    int* numpix;
-   int lowest = maxiter;
+   int  lowest = maxiter;
 
    numpix = malloc(maxiter * sizeof(int));
    memset(numpix, 0, maxiter * sizeof(int));
@@ -272,12 +273,12 @@ void autoColor(void)
 }
 
 void drawFps(void)
-{   
-   static unsigned long timeOld;
+{
+   static int timeOld;
    static int frameCounter;
-   static float dfps;
+   static double dfps;
 
-   unsigned long time;
+   int time;
    char buffer[16];
 
    frameCounter++;
@@ -291,15 +292,15 @@ void drawFps(void)
       timeOld = time;
    }
 
-   glRasterPos2f(10, 20);
+   glRasterPos2i(10, 20);
    sprintf(buffer, "%.1lf fps", dfps);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
 void drawIter(void)
 {
    char buffer[64];
-   glRasterPos2f(10, 35);
+   glRasterPos2i(10, 35);
 
    if(perc)
    {
@@ -309,59 +310,57 @@ void drawIter(void)
    {
       sprintf(buffer, "%d", iter);
    }
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 50);
+   glRasterPos2i(10, 50);
    sprintf(buffer, "er %lf", er);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 65);
+   glRasterPos2i(10, 65);
    sprintf(buffer, "eg %lf", eg);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 80);
+   glRasterPos2i(10, 80);
    sprintf(buffer, "eb %lf", eb);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 95);
+   glRasterPos2i(10, 95);
    sprintf(buffer, "si %d", startiter);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 110);
+   glRasterPos2i(10, 110);
    sprintf(buffer, "ei %d", enditer);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 125);
+   glRasterPos2i(10, 125);
    sprintf(buffer, "maxi %d", maxiter);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, 140);
+   glRasterPos2i(10, 140);
    sprintf(buffer, "pf %d", iterperframe);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
    if(renderpipe)
    {
-      glRasterPos2f(10, screenH - 50);
-      glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)renderstate);
+      glRasterPos2i(10, screenH - 50);
+      glutBitmapString(GLUT_BITMAP_9_BY_15, renderstate);
    }
-   
-   glRasterPos2f(10, screenH - 35);
+
+   glRasterPos2i(10, screenH - 35);
    sprintf(buffer, "height %.15lf", scale);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, screenH - 20);
+   glRasterPos2i(10, screenH - 20);
    sprintf(buffer, "center %.15lf + i * %.15lf", center.r, center.i);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2f(10, screenH - 5);
+   glRasterPos2i(10, screenH - 5);
    sprintf(buffer, "pointer %.15lf + i * %.15lf", pointer.r, pointer.i);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, (unsigned char*)buffer);
+   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
 void draw(void)
 {
-   glClear(GL_COLOR_BUFFER_BIT);
-
    if(redrawflag && glutGet(GLUT_ELAPSED_TIME) - lastchange > 500)
    {
       redraw();
@@ -370,7 +369,7 @@ void draw(void)
 
    glEnable(GL_TEXTURE_2D);
    glBindTexture(GL_TEXTURE_2D, gltex);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenW, screenH, 0, GL_RGB, GL_UNSIGNED_BYTE, tex);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screenW, screenH, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
    glBegin(GL_TRIANGLE_STRIP);
    glTexCoord2d(0,0);
@@ -429,9 +428,9 @@ void render(void)
       char buffer[512];
       renderstate[0] = 0;
       #ifdef _WIN32
-      sprintf(buffer, "mandelbrot_render.exe 8 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+      sprintf(buffer, "mandelbrot_render.exe 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
       #else
-      sprintf(buffer, "./mandelbrot_render 8 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+      sprintf(buffer, "./mandelbrot_render 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", screenW * 8, screenH * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
       #endif
       renderpipe = popen(buffer, "r");
    }
@@ -492,9 +491,11 @@ static void key(unsigned char key, int x, int y)
          enditer -= 10;
          break;
       case 'v':
-         {double tmp = enditer;
-         enditer = startiter;
-         startiter = tmp;}
+         {
+            int tmp = enditer;
+            enditer = startiter;
+            startiter = tmp;
+         }
          break;
       case 'u':
          maxiter = maxiter * 20 / 19;
@@ -615,7 +616,7 @@ static void reshape(int w, int h)
 
    cstore = malloc(sizeof(complex) * screenW * screenH);
    istore = malloc(sizeof(double) * screenW * screenH);
-   tex = malloc(sizeof(rgb) * screenW * screenH);
+   tex = malloc(sizeof(rgba) * screenW * screenH);
 
    clear();
 }
@@ -626,10 +627,10 @@ int main(int argc, char* argv[])
    pthread_t thread;
 
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
    glutCreateWindow("Mandelbrot");
 
-   glutReshapeWindow(800, 500);
+   glutReshapeWindow(1920, 1080);
 
    glutIdleFunc(idle);
    glutDisplayFunc(draw);
@@ -639,23 +640,22 @@ int main(int argc, char* argv[])
    glutMotionFunc(mouseMotion);
    glutPassiveMotionFunc(mouseMotionP);
 
-   glClearColor(0.0, 0.0, 0.0, 1.0);
    glEnable(GL_TEXTURE_2D);
 
    glGenTextures(1, &gltex);
    glBindTexture(GL_TEXTURE_2D, gltex);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-   
+
    pthread_mutex_init(&mliveline,    NULL);
    pthread_mutex_init(&mliveworking, NULL);
-   
-   for(i = 0; i < 8; ++i)
+
+   for(i = 0; i < 12; ++i)
    {
       pthread_create(&thread, NULL, tliverender, NULL);
    }
    pthread_create(&thread, NULL, pipereader, NULL);
-   
+
    glutMainLoop();
 
    return 0;

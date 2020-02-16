@@ -73,9 +73,9 @@ rgb color(double iter)
    g = pow(c, eg);
    b = pow(c, eb);
 
-   res.r = LIMIT(r, 0.0, 1.0) * 255;
-   res.g = LIMIT(g, 0.0, 1.0) * 255;
-   res.b = LIMIT(b, 0.0, 1.0) * 255;
+   res.r = (unsigned char)(LIMIT(r, 0.0, 1.0) * 255);
+   res.g = (unsigned char)(LIMIT(g, 0.0, 1.0) * 255);
+   res.b = (unsigned char)(LIMIT(b, 0.0, 1.0) * 255);
 
    return res;
 }
@@ -133,9 +133,9 @@ void * trender(void * a)
             }
             rendernextline++;
             pthread_mutex_unlock(&mrenderline);
-            
+
             renderline(line);
-            
+
             pthread_mutex_lock(&mrenderline);
          }
       }
@@ -149,15 +149,15 @@ void render(void)
 {
    char buffer[256];
    FILE*  out;
-   long t1, t2;
+   time_t t1, t2;
    int perc = 0;
 
    rtex = malloc(sizeof(rgb) * w * h);
    memset(rtex, 0, sizeof(rgb) * w * h);
-   
-   t1 = (long)time(0);
+
+   t1 = time(0);
    rendernextline = 0;
-   
+
    while(rendernextline < h || renderworking)
    {
       int percnew = rendernextline * 100 / h;
@@ -170,11 +170,11 @@ void render(void)
       Sleep(1);
    }
 
-   t2 = (long)time(0);
+   t2 = time(0);
    rendernextline = -1;
-   
-   printf("Done (%ld s).\n", t2 - t1);
-   sprintf(buffer, "%ld.ppm", t2);
+
+   printf("Done (%llu s).\n", (unsigned long long)(t2 - t1));
+   sprintf(buffer, "%llu.ppm", (unsigned long long)t2);
 
    out = fopen(buffer, "wb");
    fprintf(out, "P6\n#center: %0.16lf, %0.16lfi\n#scale: %0.16lf\n%d %d\n255\n", center.r, center.i, scale, w, h);
@@ -188,25 +188,25 @@ int main(int argc, char* argv[])
 {
    int i;
    pthread_t thread;
-   
+
    referenceUnusedParameter(argc);
-   
+
    pthread_mutex_init(&mrenderline,    NULL);
    pthread_mutex_init(&mrenderworking, NULL);
-   
+
    for(i = 0; i < atoi(argv[1]); ++i)
    {
       pthread_create(&thread, NULL, trender, NULL);
    }
-   
+
    w = atoi(argv[2]);
    h = atoi(argv[3]);
-   
+
    center.r = atof(argv[4]);
    center.i = atof(argv[5]);
-   
+
    scale = atof(argv[6]);
-   
+
    startiter = atoi(argv[7]);
    enditer = atoi(argv[8]);
    maxiter = atoi(argv[9]);
@@ -214,8 +214,8 @@ int main(int argc, char* argv[])
    er = atof(argv[10]);
    eg = atof(argv[11]);
    eb = atof(argv[12]);
-   
+
    render();
-   
+
    return 0;
 }
