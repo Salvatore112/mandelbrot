@@ -5,12 +5,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#ifndef _WIN32
 #include <unistd.h>
 #define sleep(x) usleep((x)*1000)
-#else
-#define sleep(x) Sleep(x)
-#endif
 
 #define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 #define MAX(x, min) ((x) < (min) ? (min) : (x))
@@ -25,8 +21,8 @@ typedef struct
 
 typedef struct
 {
-   double r;
-   double i;
+   long double r;
+   long double i;
 } complex;
 
 rgb * tex;
@@ -35,7 +31,7 @@ int w;
 int h;
 
 complex center;
-double scale;
+long double scale;
 
 double er;
 double eg;
@@ -49,12 +45,12 @@ int line = -1;
 pthread_mutex_t mline;
 pthread_mutex_t mworking;
 
-complex f(complex x, complex c, double *sqr)
+complex f(complex x, complex c, long double *sqr)
 {
    // complex numbers: x * x + c;
    complex res;
-   double r2 = x.r * x.r;
-   double i2 = x.i * x.i;
+   long double r2 = x.r * x.r;
+   long double i2 = x.i * x.i;
    res.r = r2 - i2 + c.r;
    res.i = 2 * x.r * x.i + c.i;
    *sqr = r2 + i2;
@@ -91,7 +87,7 @@ void renderline(int y)
       c.i += (y - h / 2) * scale / h;
       while(iter < maxiter)
       {
-         double sqr;
+         long double sqr;
          r = f(r, c, &sqr);
          if(sqr >= 1e10)
          {
@@ -174,7 +170,7 @@ void render(void)
    sprintf(buffer, "%llu.ppm", (unsigned long long)t2);
 
    out = fopen(buffer, "wb");
-   fprintf(out, "P6\n#center: %0.16lf, %0.16lfi\n#scale: %0.16lf\n%d %d\n255\n", center.r, center.i, scale, w, h);
+   fprintf(out, "P6\n#center: %0.20Lf, %0.20Lfi\n#scale: %0.20Lf\n%d %d\n255\n", center.r, center.i, scale, w, h);
    fwrite(tex, sizeof(rgb), w * h, out);
    fclose(out);
 
@@ -197,10 +193,10 @@ int main(int argc, char* argv[])
    w = atoi(argv[2]);
    h = atoi(argv[3]);
 
-   center.r = atof(argv[4]);
-   center.i = atof(argv[5]);
+   center.r = strtold(argv[4], NULL);
+   center.i = strtold(argv[5], NULL);
 
-   scale = atof(argv[6]);
+   scale = strtold(argv[6], NULL);
 
    startiter = atoi(argv[7]);
    enditer = atoi(argv[8]);

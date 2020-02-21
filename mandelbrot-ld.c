@@ -6,13 +6,8 @@
 #include <sched.h>
 #include <GL/freeglut.h>
 
-#ifndef _WIN32
 #include <unistd.h>
 #define sleep(x) usleep((x)*1000)
-#else
-#define popen(x, y) _popen((x), (y))
-#define sleep(x) Sleep(x)
-#endif
 
 #define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 #define MAX(x, min) ((x) < (min) ? (min) : (x))
@@ -28,8 +23,8 @@ typedef struct
 
 typedef struct
 {
-   double r;
-   double i;
+   long double r;
+   long double i;
 } complex;
 
 complex * cstore;
@@ -40,7 +35,7 @@ int w;
 int h;
 
 complex center = {0, 0};
-double scale = 4;
+long double scale = 4;
 
 complex pointer = {0, 0};
 GLuint gltex;
@@ -68,12 +63,12 @@ pthread_mutex_t mworking;
 FILE* renderpipe;
 char renderstate[256] = "";
 
-complex f(complex x, complex c, double *sqr)
+complex f(complex x, complex c, long double *sqr)
 {
    // complex numbers: x * x + c;
    complex res;
-   double r2 = x.r * x.r;
-   double i2 = x.i * x.i;
+   long double r2 = x.r * x.r;
+   long double i2 = x.i * x.i;
    res.r = r2 - i2 + c.r;
    res.i = 2 * x.r * x.i + c.i;
    *sqr = r2 + i2;
@@ -120,7 +115,7 @@ void renderline(int y)
          c.i += (y - h / 2) * scale / h;
          while(istore[index] < 1e-23 && localiter < iterperframe)
          {
-            double sqr;
+            long double sqr;
             cstore[index] = f(cstore[index], c, &sqr);
             if(sqr >= 1e10)
             {
@@ -298,7 +293,7 @@ void drawFps(void)
 
 void drawIter(void)
 {
-   char buffer[64];
+   char buffer[92];
    glRasterPos2i(10, 35);
    sprintf(buffer, "%d", iter);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
@@ -338,15 +333,15 @@ void drawIter(void)
    }
 
    glRasterPos2i(10, h - 35);
-   snprintf(buffer, 64, "height %.16lf (zoom %.2le)", scale, 1.0/scale);
+   snprintf(buffer, 92, "height %.20Lf (zoom %.2Le)", scale, 1.0/scale);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
    glRasterPos2i(10, h - 20);
-   snprintf(buffer, 64, "center %.16lf + i * %.16lf", center.r, center.i);
+   snprintf(buffer, 92, "center %.20Lf + i * %.20Lf", center.r, center.i);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
    glRasterPos2i(10, h - 5);
-   snprintf(buffer, 64, "pointer %.16lf + i * %.16lf", pointer.r, pointer.i);
+   snprintf(buffer, 92, "pointer %.20Lf + i * %.20Lf", pointer.r, pointer.i);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
@@ -417,11 +412,7 @@ void render(void)
    {
       char buffer[512];
       renderstate[0] = 0;
-      #ifdef _WIN32
-      snprintf(buffer, 512, "mandelbrot_render.exe 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
-      #else
-      snprintf(buffer, 512, "./mandelbrot_render 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
-      #endif
+      snprintf(buffer, 512, "./mandelbrot_render-ld 12 %d %d %.20Lf %.20Lf %.20Lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
       renderpipe = popen(buffer, "r");
    }
 }
@@ -625,7 +616,7 @@ int main(int argc, char* argv[])
 
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-   glutCreateWindow("Mandelbrot (double)");
+   glutCreateWindow("Mandelbrot (long double)");
 
    glutReshapeWindow(1920, 1080);
 

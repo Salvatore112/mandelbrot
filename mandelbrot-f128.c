@@ -5,14 +5,10 @@
 #include <pthread.h>
 #include <sched.h>
 #include <GL/freeglut.h>
+#include <quadmath.h>
 
-#ifndef _WIN32
 #include <unistd.h>
 #define sleep(x) usleep((x)*1000)
-#else
-#define popen(x, y) _popen((x), (y))
-#define sleep(x) Sleep(x)
-#endif
 
 #define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 #define MAX(x, min) ((x) < (min) ? (min) : (x))
@@ -28,8 +24,8 @@ typedef struct
 
 typedef struct
 {
-   double r;
-   double i;
+   __float128 r;
+   __float128 i;
 } complex;
 
 complex * cstore;
@@ -40,7 +36,7 @@ int w;
 int h;
 
 complex center = {0, 0};
-double scale = 4;
+__float128 scale = 4;
 
 complex pointer = {0, 0};
 GLuint gltex;
@@ -68,12 +64,12 @@ pthread_mutex_t mworking;
 FILE* renderpipe;
 char renderstate[256] = "";
 
-complex f(complex x, complex c, double *sqr)
+complex f(complex x, complex c, __float128 *sqr)
 {
    // complex numbers: x * x + c;
    complex res;
-   double r2 = x.r * x.r;
-   double i2 = x.i * x.i;
+   __float128 r2 = x.r * x.r;
+   __float128 i2 = x.i * x.i;
    res.r = r2 - i2 + c.r;
    res.i = 2 * x.r * x.i + c.i;
    *sqr = r2 + i2;
@@ -120,7 +116,7 @@ void renderline(int y)
          c.i += (y - h / 2) * scale / h;
          while(istore[index] < 1e-23 && localiter < iterperframe)
          {
-            double sqr;
+            __float128 sqr;
             cstore[index] = f(cstore[index], c, &sqr);
             if(sqr >= 1e10)
             {
@@ -298,7 +294,9 @@ void drawFps(void)
 
 void drawIter(void)
 {
-   char buffer[64];
+   char buffer[128];
+   int index, len;
+
    glRasterPos2i(10, 35);
    sprintf(buffer, "%d", iter);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
@@ -338,15 +336,28 @@ void drawIter(void)
    }
 
    glRasterPos2i(10, h - 35);
-   snprintf(buffer, 64, "height %.16lf (zoom %.2le)", scale, 1.0/scale);
+   index = len = 0;
+   len = snprintf(buffer, 128, "height ");
+   if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", scale);
+   if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, " (zoom ");
+   if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.2Qe", 1.0 / scale);
+   if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, ")");
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
    glRasterPos2i(10, h - 20);
-   snprintf(buffer, 64, "center %.16lf + i * %.16lf", center.r, center.i);
+   index = len = 0;
+   len = snprintf(buffer, 128, "center ");
+   if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", center.r);
+   if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, " + i * ");
+   if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", center.i);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
    glRasterPos2i(10, h - 5);
-   snprintf(buffer, 64, "pointer %.16lf + i * %.16lf", pointer.r, pointer.i);
+   index = len = 0;
+   len = snprintf(buffer, 128, "pointer ");
+   if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", pointer.r);
+   if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, " + i * ");
+   if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", pointer.i);
    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
@@ -416,12 +427,15 @@ void render(void)
    if(!renderpipe)
    {
       char buffer[512];
+      int index, len;
       renderstate[0] = 0;
-      #ifdef _WIN32
-      snprintf(buffer, 512, "mandelbrot_render.exe 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
-      #else
-      snprintf(buffer, 512, "./mandelbrot_render 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
-      #endif
+      
+      index = 0;
+      len = snprintf(buffer, 512, "./mandelbrot_render-f128 12 %d %d ", w * 8, h * 8);
+      if(len >=0 && (index += len) < 512) len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", center.r);
+      if(len >=0 && (index += len) < 512) len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", center.i);
+      if(len >=0 && (index += len) < 512) len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", scale);
+      if(len >=0 && (index += len) < 512) snprintf(buffer + index, 512 - index, "%d %d %d %lf %lf %lf", startiter, enditer, maxiter, er, eg, eb);
       renderpipe = popen(buffer, "r");
    }
 }
@@ -625,7 +639,7 @@ int main(int argc, char* argv[])
 
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-   glutCreateWindow("Mandelbrot (double)");
+   glutCreateWindow("Mandelbrot (__float128)");
 
    glutReshapeWindow(1920, 1080);
 

@@ -1,7 +1,11 @@
 mandelbrot
 mandelbrot.exe
+mandelbrot-ld
+mandelbrot-f128
 mandelbrot_render
 mandelbrot_render.exe
+mandelbrot_render-ld
+*.png
 *.ppm
 freeglut.dll
 pthreadVC2.dll
