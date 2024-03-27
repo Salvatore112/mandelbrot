@@ -22,9 +22,6 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 
 ## mandelbrot
 
-<details>
-<summary>Output</summary>
-<br>
 ```
 ==5581== Helgrind, a thread error detector
 ==5581== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
@@ -487,6 +484,4 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 ==5581== that errors may occur in your program without prior warning from
 ==5581== Valgrind, because errors are no longer being displayed.
 ==5581==
-
-</details>
 ```
