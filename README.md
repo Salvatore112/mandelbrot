@@ -487,5 +487,6 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 ==5581== that errors may occur in your program without prior warning from
 ==5581== Valgrind, because errors are no longer being displayed.
 ==5581==
-```
+
 </details>
+```
