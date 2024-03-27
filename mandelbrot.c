@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <math.h>
@@ -8,33 +9,34 @@
 
 #ifndef _WIN32
 #include <unistd.h>
-#define sleep(x) usleep((x)*1000)
+#define sleep(x) usleep((x) * 1000)
 #else
 #define popen(x, y) _popen((x), (y))
 #define sleep(x) Sleep(x)
 #endif
 
-#define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
+#define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) \
+: (x))
 #define MAX(x, min) ((x) < (min) ? (min) : (x))
 #define MIN(x, max) ((x) > (max) ? (max) : (x))
 
 typedef struct
 {
-   unsigned char r;
-   unsigned char g;
-   unsigned char b;
-   unsigned char a;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
 } rgb;
 
 typedef struct
 {
-   double r;
-   double i;
+    double r;
+    double i;
 } complex;
 
-complex * cstore;
-double * istore;
-rgb * tex;
+complex *cstore;
+double *istore;
+rgb *tex;
 
 int w;
 int h;
@@ -62,589 +64,510 @@ int iterperframe = 16;
 
 int working = 0;
 int line = -1;
-pthread_mutex_t mline;
-pthread_mutex_t mworking;
+pthread_mutex_t mline = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mworking = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mredraw = PTHREAD_MUTEX_INITIALIZER;
 
-FILE* renderpipe;
+FILE *renderpipe;
 char renderstate[256] = "";
 
 complex f(complex x, complex c, double *sqr)
 {
-   // complex numbers: x * x + c;
-   complex res;
-   double r2 = x.r * x.r;
-   double i2 = x.i * x.i;
-   res.r = r2 - i2 + c.r;
-   res.i = 2 * x.r * x.i + c.i;
-   *sqr = r2 + i2;
-   return res;
+    complex res;
+    double r2 = x.r * x.r;
+    double i2 = x.i * x.i;
+    res.r = r2 - i2 + c.r;
+    res.i = 2 * x.r * x.i + c.i;
+    *sqr = r2 + i2;
+    return res;
 }
 
 rgb color(double iter)
 {
-   rgb res;
-   double r, g, b, c;
+    rgb res;
+    double r, g, b, c;
 
-   c = (iter - startiter) / (enditer - startiter);
-   r = pow(c, er);
-   g = pow(c, eg);
-   b = pow(c, eb);
+    c = (iter - startiter) / (enditer - startiter);
+    r = pow(c, er);
+    g = pow(c, eg);
+    b = pow(c, eb);
 
-   res.r = (unsigned char)(LIMIT(r, 0.0, 1.0) * 255);
-   res.g = (unsigned char)(LIMIT(g, 0.0, 1.0) * 255);
-   res.b = (unsigned char)(LIMIT(b, 0.0, 1.0) * 255);
+    res.r = (unsigned char)(LIMIT(r, 0.0, 1.0) * 255);
+    res.g = (unsigned char)(LIMIT(g, 0.0, 1.0) * 255);
+    res.b = (unsigned char)(LIMIT(b, 0.0, 1.0) * 255);
 
-   return res;
+    return res;
 }
 
 void clear(void)
 {
-   memset(cstore, 0, sizeof(complex) * w * h);
-   memset(istore, 0, sizeof(double)  * w * h);
-   memset(tex,    0, sizeof(rgb)     * w * h);
-   iter = 0;
-   iterperframe = 16;
+    pthread_mutex_lock(&mredraw);
+    memset(cstore, 0, sizeof(complex) * w * h);
+    memset(istore, 0, sizeof(double) * w * h);
+    memset(tex, 0, sizeof(rgb) * w * h);
+    iter = 0;
+    iterperframe = 16;
+    pthread_mutex_unlock(&mredraw);
 }
 
 void renderline(int y)
 {
-   int x;
-   int index = y * w;
-   for(x = 0; x < w; x++)
-   {
-      if(istore[index] < 1e-23)
-      {
-         int localiter = 0;
-         complex c = center;
-         c.r += (x - w / 2) * scale / h;
-         c.i += (y - h / 2) * scale / h;
-         while(istore[index] < 1e-23 && localiter < iterperframe)
-         {
-            double sqr;
-            cstore[index] = f(cstore[index], c, &sqr);
-            if(sqr >= 1e10)
+    int x;
+    int index = y * w;
+    for (x = 0; x < w; x++)
+    {
+        pthread_mutex_lock(&mredraw);
+        if (istore[index] < 1e-23)
+        {
+            pthread_mutex_unlock(&mredraw);
+            int localiter = 0;
+            complex c = center;
+            c.r += (x - w / 2) * scale / h;
+            c.i += (y - h / 2) * scale / h;
+            while (istore[index] < 1e-23 && localiter < iterperframe)
             {
-               double diter = iter + localiter - log( log(sqr) / log(1e10) ) / log(2);
-               diter = MAX(diter, 1.01e-23);
-               istore[index] = diter;
-               tex[index] = color(istore[index]);
+                double sqr;
+                cstore[index] = f(cstore[index], c, &sqr);
+                if (sqr >= 1e10)
+                {
+                    double diter = iter + localiter - log(log(sqr) / log(1e10)) / log(2);
+                    diter = MAX(diter, 1.01e-23);
+                    pthread_mutex_lock(&mredraw);
+                    istore[index] = diter;
+                    tex[index] = color(istore[index]);
+                    pthread_mutex_unlock(&mredraw);
+                }
+                localiter++;
             }
-            localiter++;
-         }
-      }
-      index++;
-   }
+        }
+        else
+        {
+            pthread_mutex_unlock(&mredraw);
+        }
+        index++;
+    }
 }
 
-void * trender(void * a)
+void *trender(void *a)
 {
-   for(;;)
-   {
-      sleep(1);
-      pthread_mutex_lock(&mline);
-      if(line < 0 || line >= h)
-      {
-         pthread_mutex_unlock(&mline);
-         continue;
-      }
-      else
-      {
-         pthread_mutex_lock(&mworking);
-         working++;
-         pthread_mutex_unlock(&mworking);
-         for(;;)
-         {
-            int thisline = line;
-            if(line < 0 || line >= h)
-            {
-               pthread_mutex_unlock(&mline);
-               break;
-            }
-            line++;
+    for (;;)
+    {
+        sleep(1);
+        pthread_mutex_lock(&mline);
+        if (line < 0 || line >= h)
+        {
             pthread_mutex_unlock(&mline);
-
-            renderline(thisline);
-
-            pthread_mutex_lock(&mline);
-         }
-      }
-      pthread_mutex_lock(&mworking);
-      working--;
-      pthread_mutex_unlock(&mworking);
-   }
+            continue;
+        }
+        else
+        {
+            pthread_mutex_lock(&mworking);
+            working++;
+            pthread_mutex_unlock(&mworking);
+            for (;;)
+            {
+                int thisline = line;
+                if (line < 0 || line >= h)
+                {
+                    pthread_mutex_unlock(&mline);
+                    break;
+                }
+                line++;
+                pthread_mutex_unlock(&mline);
+                renderline(thisline);
+                pthread_mutex_lock(&mline);
+            }
+        }
+        pthread_mutex_lock(&mworking);
+        working--;
+        pthread_mutex_unlock(&mworking);
+    }
 }
 
 void idle(void)
 {
-   if(reshapeNeeded)
-   {
-      reshapeNeeded = 0;
-      glutReshapeWindow(w, h);
-      return;
-   }
+    if (reshapeNeeded)
+    {
+        reshapeNeeded = 0;
+        glutReshapeWindow(w, h);
+        return;
+    }
 
-   if(iter < maxiter)
-   {
-      int t1, t2;
+    if (iter < maxiter)
+    {
+        int t1, t2;
 
-      t1 = glutGet(GLUT_ELAPSED_TIME);
+        t1 = glutGet(GLUT_ELAPSED_TIME);
 
-      line = 0;
+        line = 0;
 
-      while(line < h || working)
-      {
-         sched_yield();
-      }
+        while (line < h || working)
+        {
+            sched_yield();
+        }
 
-      line = -1;
+        line = -1;
 
-      iter += iterperframe;
+        iter += iterperframe;
 
-      t2 = glutGet(GLUT_ELAPSED_TIME);
-      if(t2 < t1 + 20)
-      {
-         iterperframe += MAX(1, iterperframe / 10);
-      }
-      else if(t2 > t1 + 35 && iterperframe > 16)
-      {
-         iterperframe -= MAX(1, iterperframe / 10);
-      }
-   }
-   glutPostRedisplay();
+        t2 = glutGet(GLUT_ELAPSED_TIME);
+        if (t2 < t1 + 20)
+        {
+            iterperframe += MAX(1, iterperframe / 10);
+        }
+        else if (t2 > t1 + 35 && iterperframe > 16)
+        {
+            iterperframe -= MAX(1, iterperframe / 10);
+        }
+    }
+    glutPostRedisplay();
 }
 
 void redraw(void)
 {
-   int x, y;
-   int index = 0;
-   for(y = 0; y < h; y++)
-   {
-      for(x = 0; x < w; x++)
-      {
-         index++;
-         if(istore[index])
-         {
-            tex[index] = color(istore[index]);
-         }
-      }
-   }
-   glutPostRedisplay();
+    int x, y;
+    int index = 0;
+    for (y = 0; y < h; y++)
+    {
+        for (x = 0; x < w; x++)
+        {
+            index++;
+            if (istore[index])
+            {
+                tex[index] = color(istore[index]);
+            }
+        }
+    }
+    glutPostRedisplay();
 }
 
 void autoColor(void)
 {
-   int  x, y;
-   int  index = 0;
-   int* numpix;
-   int  lowest = maxiter;
+    int x, y;
+    int index = 0;
+    int *numpix;
+    int lowest = maxiter;
 
-   numpix = malloc(maxiter * sizeof(int));
-   memset(numpix, 0, maxiter * sizeof(int));
-   for(y = 0; y < h; y++)
-   {
-      for(x = 0; x < w; x++)
-      {
-         index++;
-         numpix[LIMIT((int)istore[index],0,maxiter-1)]++;
-         if(istore[index] > 1.02e-23)
-         {
-            lowest = MIN(lowest, (int)istore[index]);
-         }
-      }
-   }
-   x = 0;
-   y = h * w / 500; // 0.2 % white pixels allowed
-   for(index = maxiter - 1; index >= 0; --index)
-   {
-      x += numpix[index];
-      if(x > y)
-      {
-         enditer = index;
-         break;
-      }
-   }
-   if(lowest != maxiter)
-   {
-      double c = 0.05;
-      startiter = (int)((lowest - c * enditer) / (1.0 - c));
-   }
-   redraw();
+    numpix = malloc(maxiter * sizeof(int));
+    memset
+
+            (numpix, 0, maxiter * sizeof(int));
+    for (y = 0; y < h; y++)
+    {
+        for (x = 0; x < w; x++)
+        {
+            index++;
+            pthread_mutex_lock(&mline);
+            numpix[LIMIT((int)istore[index], 0, maxiter - 1)]++;
+            if (istore[index] > 1.02e-23)
+            {
+                lowest = MIN(lowest, (int)istore[index]);
+            }
+            pthread_mutex_unlock(&mline);
+        }
+    }
+    x = 0;
+    y = h * w / 500; // 0.2 % white pixels allowed
+    for (index = maxiter - 1; index >= 0; --index)
+    {
+        x += numpix[index];
+        if (x > y)
+        {
+            enditer = index;
+            break;
+        }
+    }
+    if (lowest != maxiter)
+    {
+        double c = 0.05;
+        startiter = (int)((lowest - c * enditer) / (1.0 - c));
+    }
+    redraw();
+}
+
+void *pipereader(void *a)
+{
+    for (;;)
+    {
+        pthread_mutex_lock(&mworking);
+        if (renderpipe)
+        {
+            if (!fgets(renderstate, 255, renderpipe))
+            {
+                fclose(renderpipe);
+                renderpipe = NULL;
+            }
+        }
+        else
+        {
+            sleep(1); // Sleep for 1 second
+        }
+        pthread_mutex_unlock(&mworking);
+    }
+    return NULL;
 }
 
 void drawFps(void)
 {
-   static int timeOld;
-   static int frameCounter;
-   static double dfps;
+    static int timeOld;
+    static int frameCounter;
+    static double dfps;
 
-   int time;
-   char buffer[16];
+    int time;
+    char buffer[16];
 
-   frameCounter++;
-   time = glutGet(GLUT_ELAPSED_TIME);
+    frameCounter++;
+    time = glutGet(GLUT_ELAPSED_TIME);
 
-   if(time > timeOld + 500)
-   {
-      dfps = frameCounter * 1000.0 / (time - timeOld);
+    if (time > timeOld + 500)
+    {
+        dfps = frameCounter * 1000.0 / (time - timeOld);
 
-      frameCounter = 0;
-      timeOld = time;
-   }
+        frameCounter = 0;
+        timeOld = time;
+    }
 
-   glRasterPos2i(10, 20);
-   sprintf(buffer, "%.1lf fps", dfps);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 20);
+    sprintf(buffer, "%.1lf fps", dfps);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
 void drawIter(void)
 {
-   char buffer[64];
-   glRasterPos2i(10, 35);
-   sprintf(buffer, "%d", iter);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    char buffer[64];
+    glRasterPos2i(10, 35);
+    sprintf(buffer, "%d", iter);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 50);
-   sprintf(buffer, "er %lf", er);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 50);
+    sprintf(buffer, "er %lf", er);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 65);
-   sprintf(buffer, "eg %lf", eg);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 65);
+    sprintf(buffer, "eg %lf", eg);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 80);
-   sprintf(buffer, "eb %lf", eb);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 80);
+    sprintf(buffer, "eb %lf", eb);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 95);
-   sprintf(buffer, "si %d", startiter);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 95);
+    sprintf(buffer, "si %d", startiter);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 110);
-   sprintf(buffer, "ei %d", enditer);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 110);
+    sprintf(buffer, "ei %d", enditer);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 125);
-   sprintf(buffer, "maxi %d", maxiter);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 125);
+    sprintf(buffer, "maxi %d", maxiter);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, 140);
-   sprintf(buffer, "pf %d", iterperframe);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, 140);
+    sprintf(buffer, "pf %d", iterperframe);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   if(renderpipe)
-   {
-      glRasterPos2i(10, h - 50);
-      glutBitmapString(GLUT_BITMAP_9_BY_15, renderstate);
-   }
+    if (renderpipe)
+    {
+        glRasterPos2i(10, h - 50);
+        glutBitmapString(GLUT_BITMAP_9_BY_15, renderstate);
+    }
 
-   glRasterPos2i(10, h - 35);
-   snprintf(buffer, 64, "height %.16lf (zoom %.2le)", scale, 1.0/scale);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, h - 35);
+    snprintf(buffer, 64, "height %.16lf (zoom %.2le)", scale, 1.0 / scale);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, h - 20);
-   snprintf(buffer, 64, "center %.16lf + i * %.16lf", center.r, center.i);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, h - 20);
+    snprintf(buffer, 64, "center %.16lf + i * %.16lf", center.r, center.i);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-   glRasterPos2i(10, h - 5);
-   snprintf(buffer, 64, "pointer %.16lf + i * %.16lf", pointer.r, pointer.i);
-   glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
+    glRasterPos2i(10, h - 5);
+    snprintf(buffer, 64, "pointer %.16lf + i * %.16lf", pointer.r, pointer.i);
+    glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
 void draw(void)
 {
-   if(redrawflag && glutGet(GLUT_ELAPSED_TIME) - lastchange > 500)
-   {
-      redraw();
-      redrawflag = 0;
-   }
+    if (redrawflag && glutGet(GLUT_ELAPSED_TIME) - lastchange > 500)
+    {
+        redraw();
+        redrawflag = 0;
+    }
 
-   glEnable(GL_TEXTURE_2D);
-   glBindTexture(GL_TEXTURE_2D, gltex);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-   glBegin(GL_TRIANGLE_STRIP);
-   glTexCoord2d(0,0);
-   glVertex2d(0,0);
-   glTexCoord2d(1,0);
-   glVertex2d(w,0);
-   glTexCoord2d(0,1);
-   glVertex2d(0,h);
-   glTexCoord2d(1,1);
-   glVertex2d(w,h);
-   glEnd();
+    glClear(GL_COLOR_BUFFER_BIT);
 
-   glDisable(GL_TEXTURE_2D);
+    glEnable(GL_TEXTURE_2D);
+    pthread_mutex_lock(&mworking);
+    glBindTexture(GL_TEXTURE_2D, gltex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
-   if(mpress)
-   {
-      glColor3f(1.0, 1.0, 1.0);
-      glBegin(GL_LINE_LOOP);
-      glVertex2d(mpressx1, mpressy1);
-      glVertex2d(mpressx1, mpressy2);
-      glVertex2d(mpressx2, mpressy2);
-      glVertex2d(mpressx2, mpressy1);
-      glEnd();
-   }
+    glBegin(GL_TRIANGLE_STRIP);
+    glTexCoord2d(0, 0);
+    glVertex2d(0, 0);
+    glTexCoord2d(1, 0);
+    glVertex2d(w, 0);
+    glTexCoord2d(0, 1);
+    glVertex2d(0, h);
+    glTexCoord2d(1, 1);
+    glVertex2d(w, h);
+    glEnd();
 
-   drawFps();
-   drawIter();
+    glDisable(GL_TEXTURE_2D);
+    pthread_mutex_unlock(&mworking);
 
-   glutSwapBuffers();
-}
+    if (mpress)
+    {
+        glColor3f(1.0, 1.0, 1.0);
+        glBegin(GL_LINE_LOOP);
+        glVertex2d(mpressx1, mpressy1);
+        glVertex2d(mpressx1, mpressy2);
+        glVertex2d(mpressx2, mpressy2);
+        glVertex2d(mpressx2, mpressy1);
+        glEnd();
+    }
 
-void* pipereader(void* a)
-{
-   for(;;)
-   {
-      if(renderpipe)
-      {
-         if(!fgets(renderstate, 255, renderpipe))
-         {
-            fclose(renderpipe);
-            renderpipe = NULL;
-         }
-      }
-      else
-      {
-         sleep(100);
-      }
-   }
+    drawFps();
+    drawIter();
+
+    glutSwapBuffers();
 }
 
 void render(void)
 {
-   if(!renderpipe)
-   {
-      char buffer[512];
-      renderstate[0] = 0;
-      #ifdef _WIN32
-      snprintf(buffer, 512, "mandelbrot_render.exe 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
-      #else
-      snprintf(buffer, 512, "./mandelbrot_render 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
-      #endif
-      renderpipe = popen(buffer, "r");
-   }
+    if (!renderpipe)
+    {
+        char buffer[512];
+        renderstate[0] = 0;
+#ifdef _WIN32
+        snprintf(buffer, 512, "mandelbrot_render.exe 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+#else
+        snprintf(buffer, 512, "./mandelbrot_render 12 %d %d %.16lf %.16lf %.16lf %d %d %d %lf %lf %lf", w * 8, h * 8, center.r, center.i, scale, startiter, enditer, maxiter, er, eg, eb);
+#endif
+        pthread_mutex_lock(&mworking);
+        renderpipe = popen(buffer, "r");
+        pthread_mutex_unlock(&mworking);
+    }
 }
 
-static void key(unsigned char key, int x, int y)
+void keyboard(unsigned char k, int x, int y)
 {
-   switch(key)
-   {
-      case 27:
-         glutLeaveMainLoop();
-         break;
-      case 'f':
-         autoColor();
-         break;
-      case 'q':
-         er += 0.01;
-         break;
-      case 'a':
-         er -= 0.01;
-         break;
-      case 'w':
-         eg += 0.01;
-         break;
-      case 's':
-         eg -= 0.01;
-         break;
-      case 'e':
-         eb += 0.01;
-         break;
-      case 'd':
-         eb -= 0.01;
-         break;
-      case 't':
-         startiter += 1;
-         break;
-      case 'g':
-         startiter -= 1;
-         break;
-      case 'T':
-         startiter += 10;
-         break;
-      case 'G':
-         startiter -= 10;
-         break;
-      case 'z':
-         enditer += 1;
-         break;
-      case 'h':
-         enditer -= 1;
-         break;
-      case 'Z':
-         enditer += 10;
-         break;
-      case 'H':
-         enditer -= 10;
-         break;
-      case 'v':
-         {
-            int tmp = enditer;
-            enditer = startiter;
-            startiter = tmp;
-         }
-         break;
-      case 'u':
-         maxiter = maxiter * 20 / 19;
-         return;
-      case 'j':
-         maxiter = maxiter * 19 / 20;
-         return;
-      case 'U':
-         maxiter = maxiter * 5 / 4;
-         return;
-      case 'J':
-         maxiter = maxiter * 4 / 5;
-         return;
-      case 'r':
-         render();
-         return;
-      case '0':
-         center.r = 0;
-         center.i = 0;
-         scale = 4.0;
-         er = 3.0;
-         eg = 0.75;
-         eb = 0.5;
-         startiter = -4;
-         enditer = 77;
-         maxiter = 8192;
-         clear();
-         return;
-   }
-   lastchange = glutGet(GLUT_ELAPSED_TIME);
-   redrawflag = 1;
+    switch (k)
+    {
+        case 'a':
+            autoColor();
+            break;
+        case 'r':
+            render();
+            break;
+        case 'R':
+            clear();
+            render();
+            break;
+        case 27:
+            if (renderpipe)
+            {
+                pthread_mutex_lock(&mworking);
+                fclose(renderpipe);
+                renderpipe = NULL;
+                pthread_mutex_unlock(&mworking);
+            }
+            else
+            {
+                exit(0);
+            }
+            break;
+    }
 }
 
-void mouseMotion(int x, int y)
+void motion(int x, int y)
 {
-   if(mpress)
-   {
-      mpressx2 = x;
-      mpressy2 = y;
-   }
-}
-
-void mouseMotionP(int x, int y)
-{
-   pointer = center;
-   pointer.r += (x - w / 2) * scale / h;
-   pointer.i += (y - h / 2) * scale / h;
+    pointer.r = (double)(x - w / 2) * scale / h;
+    pointer.i = (double)(y - h / 2) * scale / h;
 }
 
 void mouse(int button, int state, int x, int y)
 {
-   switch(button)
-   {
-      case GLUT_LEFT_BUTTON:
-         if(state == GLUT_DOWN)
-         {
+    if (button == GLUT_LEFT_BUTTON)
+    {
+        if (state == GLUT_DOWN)
+        {
             mpress = 1;
             mpressx1 = x;
-            mpressy1 = y;
-            mpressx2 = x;
-            mpressy2 = y;
-         }
-         else
-         {
-            double cx, cy, scw, sch;
+            mpressy1 = h - y;
+        }
+        else
+        {
             mpress = 0;
             mpressx2 = x;
-            mpressy2 = y;
-            cx = 0.5 * (mpressx1 + mpressx2);
-            cy = 0.5 * (mpressy1 + mpressy2);
-            center.r += (cx - w / 2) * scale / h;
-            center.i += (cy - h / 2) * scale / h;
-            scw = fabs(mpressx2 - mpressx1) / w;
-            sch = fabs(mpressy2 - mpressy1) / h;
-            scale *= MAX(MAX(scw, 0.01), sch);
-            clear();
-         }
-         break;
-      case GLUT_RIGHT_BUTTON:
-         if(state == GLUT_UP)
-         {
-            center.r += (x - w / 2) * scale / h;
-            center.i += (y - h / 2) * scale / h;
-            scale *= 2.0;
-            clear();
-         }
-         break;
-      default:
-         if(state == GLUT_UP)
-         {
-            center.r += (x - w / 2) * scale / h;
-            center.i += (y - h / 2) * scale / h;
-            clear();
-         }
-   }
+            mpressy2 = h - y;
+            if (mpressx1 != mpressx2 && mpressy1 != mpressy2)
+            {
+                double x1 = center.r + (double)mpressx1 * scale / h;
+                double x2 = center.r + (double)mpressx2 * scale / h;
+                double y1 = center.i + (double)mpressy1 * scale / h;
+                double y2 = center.i + (double)mpressy2 * scale / h;
+                center.r = (x1 + x2) / 2;
+                center.i = (y1 + y2) / 2;
+                scale = MAX(fabs((x2 - x1) / 2), fabs((y2 - y1) / 2));
+                render();
+            }
+        }
+    }
 }
 
-static void reshape(int ww, int wh)
+void reshape(int width, int height)
 {
-   w = (ww / 8) * 8;
-   h = wh;
-   if(w != ww)
-   {
-      reshapeNeeded = 1;
-   }
+    w = width;
+    h = height;
 
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   glOrtho(0, w, h, 0, -100, 100); /* left, right, bottom, top, near, far */
+    pthread_mutex_lock(&mredraw);
+    free(tex);
+    free(cstore);
+    free(istore);
+    tex = malloc(sizeof(rgb) * w * h);
+    cstore = malloc(sizeof(complex) * w * h);
+    istore = malloc(sizeof(double) * w * h);
+    pthread_mutex_unlock(&mredraw);
 
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-   glViewport(0, 0, w, h);
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, w, 0, h);
 
-   if(cstore) free(cstore);
-   if(istore) free(istore);
-   if(tex) free(tex);
-
-   cstore = malloc(sizeof(complex) * w * h);
-   istore = malloc(sizeof(double) * w * h);
-   tex = malloc(sizeof(rgb) * w * h);
-
-   clear();
+    redraw();
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char **argv)
 {
-   int i;
-   pthread_t thread;
+    int tid1, tid2;
+    int i;
 
-   pthread_mutex_init(&mline,    NULL);
-   pthread_mutex_init(&mworking, NULL);
+    w = 800;
+    h = 600;
 
-   for(i = 0; i < 12; ++i)
-   {
-      pthread_create(&thread, NULL, trender, NULL);
-   }
-   pthread_create(&thread, NULL, pipereader, NULL);
+    tex = malloc(sizeof(rgb) * w * h);
+    cstore = malloc(sizeof(complex) * w * h);
+    istore = malloc(sizeof(double) * w * h);
 
-   glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-   glutCreateWindow("Mandelbrot (double)");
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitWindowSize(w, h);
+    glutCreateWindow("Mandelbrot");
 
-   glutReshapeWindow(1920, 1080);
+    pthread_create(&tid1, NULL, trender, NULL);
+    pthread_create(&tid2, NULL, pipereader, NULL);
 
-   glutIdleFunc(idle);
-   glutDisplayFunc(draw);
-   glutReshapeFunc(reshape);
-   glutKeyboardFunc(key);
-   glutMouseFunc(mouse);
-   glutMotionFunc(mouseMotion);
-   glutPassiveMotionFunc(mouseMotionP);
+    glutDisplayFunc(draw);
+    glutKeyboardFunc(keyboard);
+    glutMouseFunc(mouse);
+    glutMotionFunc(motion);
+    glutIdleFunc(idle);
+    glutReshapeFunc(reshape);
 
-   glEnable(GL_TEXTURE_2D);
+    glutMainLoop();
 
-   glGenTextures(1, &gltex);
-   glBindTexture(GL_TEXTURE_2D, gltex);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-   glutMainLoop();
-
-   return 0;
+    return 0;
 }
