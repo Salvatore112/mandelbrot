@@ -481,6 +481,11 @@ After the build the following binaries were generated:
 ==3297== ERROR SUMMARY: 10000000 errors from 22 contexts (suppressed: 13491 from 51)
 ```
 </details>
+
+It can be seen that helgrind detected a lot of data races. After examining the code, there were found some problematic areas where data races could occured
+- $line$ variable can be accessed and modified by multiple threads in $trender$ function
+- access to $cstore$, $istore$ arrays by multiple threads in various parts of the programm
+- access to such variables as $iter$, $lowest$, $renderpipe$ by multiple threads
 <details>
 <summary>helgrind report (after fixes)</summary>
 
@@ -886,7 +891,7 @@ After the build the following binaries were generated:
 ==3662== ERROR SUMMARY: 17040 errors from 15 contexts (suppressed: 16901 from 72)
 ```
 </details>
-
+After adding a few mutexes the number of errors reduced significantly
 ## mandlebrot-f128
 
 <details>
