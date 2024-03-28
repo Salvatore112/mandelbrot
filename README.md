@@ -479,7 +479,7 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 ==3297== For lists of detected and suppressed errors, rerun with: -s
 ==3297== ERROR SUMMARY: 10000000 errors from 22 contexts (suppressed: 13491 from 51)
 ```
-##mandlebrot-f128
+## mandlebrot-f128
 ```
 ==3342== Helgrind, a thread error detector
 ==3342== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
@@ -1662,4 +1662,3 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 ==3141== For lists of detected and suppressed errors, rerun with: -s
 ==3141== ERROR SUMMARY: 10000000 errors from 29 contexts (suppressed: 10319 from 55)
 ```
-## 
