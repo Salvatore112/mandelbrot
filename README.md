@@ -479,6 +479,410 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 ==3297== For lists of detected and suppressed errors, rerun with: -s
 ==3297== ERROR SUMMARY: 10000000 errors from 22 contexts (suppressed: 13491 from 51)
 ```
+## mandlebrot (after fixes)
+
+```
+==3662== Helgrind, a thread error detector
+==3662== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
+==3662== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==3662== Command: ./mandelbrot
+==3662== 
+==3662== ---Thread-Announcement------------------------------------------
+==3662== 
+==3662== Thread #1 is the program's root thread
+==3662== 
+==3662== ---Thread-Announcement------------------------------------------
+==3662== 
+==3662== Thread #31 was created
+==3662==    at 0x4BB09F3: clone (clone.S:76)
+==3662==    by 0x4BB18EE: __clone_internal (clone-internal.c:83)
+==3662==    by 0x4B1F6D8: create_thread (pthread_create.c:295)
+==3662==    by 0x4B201FF: pthread_create@@GLIBC_2.34 (pthread_create.c:828)
+==3662==    by 0x4853767: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10A70F: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E010 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A924: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== This conflicts with a previous read of size 4 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B2CA: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during read of size 4 at 0x10E010 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B2CA: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== This conflicts with a previous write of size 4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A924: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during read of size 4 at 0x10E2A0 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B2D4: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== This conflicts with a previous write of size 4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10AE52: reshape (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x4977D5A: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x4978578: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e2a0 is 0 bytes inside data symbol "h"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during read of size 4 at 0x10E010 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B2F2: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== This conflicts with a previous write of size 4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A924: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E010 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B306: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== This conflicts with a previous write of size 4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A924: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during read of size 4 at 0x10E010 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B320: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== This conflicts with a previous write of size 4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A924: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during read of size 4 at 0x10E010 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A935: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== This conflicts with a previous write of size 4 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B306: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662== Possible data race during read of size 4 at 0x10E248 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A943: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e248 is 0 bytes inside data symbol "working"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E1E0 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10AA4F: pipereader (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e1e0 is 0 bytes inside data symbol "mworking"
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E248 by thread #31
+==3662== Locks held: 1, at address 0x10E1E0
+==3662==    at 0x10B345: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== This conflicts with a previous read of size 4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A943: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662==  Address 0x10e248 is 0 bytes inside data symbol "working"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E26C by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A958: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== This conflicts with a previous read of size 4 by thread #31
+==3662== Locks held: none
+==3662==    at 0x10B1E5: renderline (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x10B317: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e26c is 0 bytes inside data symbol "iter"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E010 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10A95E: idle (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x49785BD: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== This conflicts with a previous read of size 4 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B320: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e010 is 0 bytes inside data symbol "line"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x5490E90 was first observed
+==3662==    at 0x4854BFE: pthread_mutex_init (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x63B85E6: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69B0FE8: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6354623: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69AB6A5: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69AB5E6: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6354EEF: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x635E265: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6172142: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x6177FCF: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x6173745: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x61740F7: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==  Address 0x5490e90 is 624 bytes inside a block of size 936 alloc'd
+==3662==    at 0x484FB03: calloc (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x69B0DF6: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6354623: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69AB6A5: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69AB5E6: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6354EEF: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x635E265: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6172142: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x6177FCF: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x6173745: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x61740F7: ??? (in /usr/lib/x86_64-linux-gnu/libGLX_mesa.so.0.0.0)
+==3662==    by 0x4D8879A: glXChooseFBConfig (in /usr/lib/x86_64-linux-gnu/libGLX.so.0.0.0)
+==3662==  Block was alloc'd by thread #1
+==3662== 
+==3662== Possible data race during read of size 1 at 0x216F67E0 by thread #1
+==3662== Locks held: 1, at address 0x5490E90
+==3662==    at 0x485077C: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4850A2A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x69B3500: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69B69AC: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69C46DA: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69B375B: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6408216: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x496D769: glutSwapBuffers (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x497772A: ??? (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x497B0C0: fgEnumWindows (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x4977CBA: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x49785D2: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==  Address 0x216f67e0 is 16 bytes inside a block of size 112 alloc'd
+==3662==    at 0x484FB03: calloc (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x69B349B: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69C418C: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69C474F: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69C5CC4: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x69CD28E: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x6930143: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x692B958: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x692BDA1: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x68C37D1: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x68BCAE9: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==    by 0x68BCE93: ??? (in /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so)
+==3662==  Block was alloc'd by thread #1
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E2A4 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10AE49: reshape (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x4977D5A: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x49785D2: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== This conflicts with a previous read of size 4 by thread #31
+==3662== Locks held: none
+==3662==    at 0x10B0B5: renderline (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x10B317: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e2a4 is 0 bytes inside data symbol "w"
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662==  Lock at 0x10E220 was first observed
+==3662==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10B2C9: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e220 is 0 bytes inside data symbol "mline"
+==3662== 
+==3662== Possible data race during write of size 4 at 0x10E2A0 by thread #1
+==3662== Locks held: none
+==3662==    at 0x10AE52: reshape (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x4977D5A: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x49785D2: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== This conflicts with a previous read of size 4 by thread #31
+==3662== Locks held: 1, at address 0x10E220
+==3662==    at 0x10B32A: trender (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662==  Address 0x10e2a0 is 0 bytes inside data symbol "h"
+==3662== 
+^C==3662== 
+==3662== Process terminating with default action of signal 2 (SIGINT)
+==3662==    at 0x4A188B0: __ieee754_pow_fma (e_pow.c:283)
+==3662==    by 0x49D9E47: pow@@GLIBC_2.29 (w_pow_template.c:32)
+==3662==    by 0x10AD74: color (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x10AF93: reshape (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x4977D5A: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x49785D2: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==3662==    by 0x10A771: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== ---Thread-Announcement------------------------------------------
+==3662== 
+==3662== Thread #32 was created
+==3662==    at 0x4BB09F3: clone (clone.S:76)
+==3662==    by 0x4BB18EE: __clone_internal (clone-internal.c:83)
+==3662==    by 0x4B1F6D8: create_thread (pthread_create.c:295)
+==3662==    by 0x4B201FF: pthread_create@@GLIBC_2.34 (pthread_create.c:828)
+==3662==    by 0x4853767: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x10A724: main (in /home/pasha/mandelbrot/mandelbrot)
+==3662== 
+==3662== ----------------------------------------------------------------
+==3662== 
+==3662== Thread #32: Exiting thread still holds 1 lock
+==3662==    at 0x4B707F8: clock_nanosleep@@GLIBC_2.17 (clock_nanosleep.c:78)
+==3662==    by 0x4B75676: nanosleep (nanosleep.c:25)
+==3662==    by 0x4BA6F2E: usleep (usleep.c:31)
+==3662==    by 0x10AA99: pipereader (in /home/pasha/mandelbrot/mandelbrot)
+==3662==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==3662==    by 0x4B1FAC2: start_thread (pthread_create.c:442)
+==3662==    by 0x4BB0A03: clone (clone.S:100)
+==3662== 
+==3662== 
+==3662== Use --history-level=approx or =none to gain increased speed, at
+==3662== the cost of reduced accuracy of conflicting-access information
+==3662== For lists of detected and suppressed errors, rerun with: -s
+==3662== ERROR SUMMARY: 17040 errors from 15 contexts (suppressed: 16901 from 72)
+```
+
 ## mandlebrot-f128
 ```
 ==3342== Helgrind, a thread error detector
