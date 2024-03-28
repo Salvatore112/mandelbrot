@@ -1416,6 +1416,78 @@ After adding a few mutexes the number of errors reduced significantly
 ```
 </details>
 
+Similarly to mandelbrot, a lot of data races occured because there were lots of shared resources that multiple threads had access to. For example, $mpress$, $renderpipe$, $redrawflag$, $time$, $lowest$ etc.
+
+<details>
+<summary>helgrind report (after fixes)</summary>
+
+```
+==2785== Helgrind, a thread error detector
+==2785== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
+==2785== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==2785== Command: ./mandelbrot-f128
+==2785== 
+==2785== ---Thread-Announcement------------------------------------------
+==2785== 
+==2785== Thread #14 was created
+==2785==    at 0x4BA29F3: clone (clone.S:76)
+==2785==    by 0x4BA38EE: __clone_internal (clone-internal.c:83)
+==2785==    by 0x4B116D8: create_thread (pthread_create.c:295)
+==2785==    by 0x4B121FF: pthread_create@@GLIBC_2.34 (pthread_create.c:828)
+==2785==    by 0x4853767: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x10A75D: main (in /home/pasha/mandelbrot/mandelbrot-f128)
+==2785== 
+==2785== ----------------------------------------------------------------
+==2785== 
+==2785== Thread #14: Attempt to re-lock a non-recursive lock I already hold
+==2785==    at 0x4850C04: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x10AA97: pipereader (in /home/pasha/mandelbrot/mandelbrot-f128)
+==2785==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x4B11AC2: start_thread (pthread_create.c:442)
+==2785==    by 0x4BA2A03: clone (clone.S:100)
+==2785==  Lock was previously acquired
+==2785==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x10AA97: pipereader (in /home/pasha/mandelbrot/mandelbrot-f128)
+==2785==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x4B11AC2: start_thread (pthread_create.c:442)
+==2785==    by 0x4BA2A03: clone (clone.S:100)
+==2785== 
+^C==2785== 
+==2785== Process terminating with default action of signal 2 (SIGINT)
+==2785==    at 0x4B0E2C0: futex_wait (futex-internal.h:146)
+==2785==    by 0x4B0E2C0: __lll_lock_wait (lowlevellock.c:49)
+==2785==    by 0x4B15001: lll_mutex_lock_optimized (pthread_mutex_lock.c:48)
+==2785==    by 0x4B15001: pthread_mutex_lock@@GLIBC_2.2.5 (pthread_mutex_lock.c:93)
+==2785==    by 0x4850C66: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x10C660: draw (in /home/pasha/mandelbrot/mandelbrot-f128)
+==2785==    by 0x492172A: ??? (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==2785==    by 0x49250C0: fgEnumWindows (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==2785==    by 0x4921CBA: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==2785==    by 0x4922578: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==2785==    by 0x10A83B: main (in /home/pasha/mandelbrot/mandelbrot-f128)
+==2785== ----------------------------------------------------------------
+==2785== 
+==2785== Thread #14: Exiting thread still holds 1 lock
+==2785==    at 0x4B0E2C0: futex_wait (futex-internal.h:146)
+==2785==    by 0x4B0E2C0: __lll_lock_wait (lowlevellock.c:49)
+==2785==    by 0x4B15001: lll_mutex_lock_optimized (pthread_mutex_lock.c:48)
+==2785==    by 0x4B15001: pthread_mutex_lock@@GLIBC_2.2.5 (pthread_mutex_lock.c:93)
+==2785==    by 0x4850C66: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x10AA97: pipereader (in /home/pasha/mandelbrot/mandelbrot-f128)
+==2785==    by 0x485396A: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==2785==    by 0x4B11AC2: start_thread (pthread_create.c:442)
+==2785==    by 0x4BA2A03: clone (clone.S:100)
+==2785== 
+==2785== 
+==2785== Use --history-level=approx or =none to gain increased speed, at
+==2785== the cost of reduced accuracy of conflicting-access information
+==2785== For lists of detected and suppressed errors, rerun with: -s
+==2785== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 279 from 16)
+
+```
+</details>
+After adding more mutexes almoset all the data races were gone
+
 ## mandelbrot-ld
 
 <details>
