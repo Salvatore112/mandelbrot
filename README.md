@@ -22,7 +22,10 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 
 ## mandelbrot
 
-```
+<details>
+<summary>helgrind report (before fixes)</summary>
+
+``` 
 ==3297== Helgrind, a thread error detector
 ==3297== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
 ==3297== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
@@ -479,6 +482,9 @@ After running "valgrind --tool=helgrind" on the these files, the following outpu
 ==3297== For lists of detected and suppressed errors, rerun with: -s
 ==3297== ERROR SUMMARY: 10000000 errors from 22 contexts (suppressed: 13491 from 51)
 ```
+</details>
+
+
 ## mandlebrot (after fixes)
 
 ```
