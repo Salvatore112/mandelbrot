@@ -13,12 +13,10 @@ mandelbrot fractal explorer and renderer
 After the build the following binaries were generated:
 
 - mandelbrot
-- mandelbrot_render (Seg fault occured while trying to analyze it with helgrind) 
-- mandelbrot_render-ld (Seg fault occured while trying to analyze it with helgrind)
 - mandelbrot-f128
 - mandelbrot-ld
-
-After running "valgrind --tool=helgrind" on the these files, the following output for each was given:
+- mandelbrot_render (Seg fault occured while trying to analyze it with helgrind) 
+- mandelbrot_render-ld (Seg fault occured while trying to analyze it with helgrind)
 
 ## mandelbrot
 
