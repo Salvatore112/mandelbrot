@@ -2165,7 +2165,7 @@ After adding more mutexes almoset all the data races were gone
 The same situtation as mandlebrot-f128, the same shared resources are accessed by multiple threads
 
 <details>
-<summary>helgrind report (before fixes)</summary>
+<summary>helgrind report (after fixes)</summary>
 
 ```
 ==4135== Helgrind, a thread error detector
