@@ -1,17 +1,9 @@
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <math.h>
-#include <pthread.h>
-#include <sched.h>
-#include <GL/freeglut.h>
 #include <quadmath.h>
 
 #include <unistd.h>
-#define sleep(x) usleep((x) * 1000)
+#define sleep(x) usleep((x)*1000)
 
-#define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) \
-: (x))
+#define LIMIT(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 #define MAX(x, min) ((x) < (min) ? (min) : (x))
 #define MIN(x, max) ((x) > (max) ? (max) : (x))
 
@@ -29,45 +21,22 @@ typedef struct
     __float128 i;
 } complex;
 
-complex *cstore;
-double *istore;
-rgb *tex;
+complex * cstore;
+double * istore;
+rgb * tex;
 
 int w;
 int h;
-
-complex center = {0, 0};
-__float128 scale = 4;
-
-complex pointer = {0, 0};
-GLuint gltex;
-int iter;
-
-double er = 3.0;
-double eg = 0.75;
-double eb = 0.5;
-int startiter = -4;
-int enditer = 77;
-int maxiter = 8192;
-
-int lastchange = 0;
-int redrawflag = 0;
-int reshapeNeeded = 0;
-int mpress = 0;
-int mpressx1, mpressy1, mpressx2, mpressy2;
-int iterperframe = 16;
-
-int working = 0;
-int line = -1;
+@@ -61,604 +62,643 @@ int line = -1;
 pthread_mutex_t mline;
 pthread_mutex_t mworking;
 
-FILE *renderpipe;
+FILE* renderpipe;
 char renderstate[256] = "";
 
 complex f(complex x, complex c, __float128 *sqr)
 {
-// complex numbers: x * x + c;
+    // complex numbers: x * x + c;
     complex res;
     __float128 r2 = x.r * x.r;
     __float128 i2 = x.i * x.i;
@@ -97,8 +66,8 @@ rgb color(double iter)
 void clear(void)
 {
     memset(cstore, 0, sizeof(complex) * w * h);
-    memset(istore, 0, sizeof(double) * w * h);
-    memset(tex, 0, sizeof(rgb) * w * h);
+    memset(istore, 0, sizeof(double)  * w * h);
+    memset(tex,    0, sizeof(rgb)     * w * h);
     iter = 0;
     iterperframe = 16;
 }
@@ -107,21 +76,21 @@ void renderline(int y)
 {
     int x;
     int index = y * w;
-    for (x = 0; x < w; x++)
+    for(x = 0; x < w; x++)
     {
-        if (istore[index] < 1e-23)
+        if(istore[index] < 1e-23)
         {
             int localiter = 0;
             complex c = center;
             c.r += (x - w / 2) * scale / h;
             c.i += (y - h / 2) * scale / h;
-            while (istore[index] < 1e-23 && localiter < iterperframe)
+            while(istore[index] < 1e-23 && localiter < iterperframe)
             {
                 __float128 sqr;
                 cstore[index] = f(cstore[index], c, &sqr);
-                if (sqr >= 1e10)
+                if(sqr >= 1e10)
                 {
-                    double diter = iter + localiter - log(log(sqr) / log(1e10)) / log(2);
+                    double diter = iter + localiter - log( log(sqr) / log(1e10) ) / log(2);
                     diter = MAX(diter, 1.01e-23);
                     istore[index] = diter;
                     tex[index] = color(istore[index]);
@@ -133,13 +102,13 @@ void renderline(int y)
     }
 }
 
-void *trender(void *a)
+void * trender(void * a)
 {
-    for (;;)
+    for(;;)
     {
         sleep(1);
         pthread_mutex_lock(&mline);
-        if (line < 0 || line >= h)
+        if(line < 0 || line >= h)
         {
             pthread_mutex_unlock(&mline);
             continue;
@@ -149,10 +118,10 @@ void *trender(void *a)
             pthread_mutex_lock(&mworking);
             working++;
             pthread_mutex_unlock(&mworking);
-            for (;;)
+            for(;;)
             {
                 int thisline = line;
-                if (line < 0 || line >= h)
+                if(line < 0 || line >= h)
                 {
                     pthread_mutex_unlock(&mline);
                     break;
@@ -173,26 +142,22 @@ void *trender(void *a)
 
 void idle(void)
 {
-    pthread_mutex_lock(&mline);
-    if (reshapeNeeded)
+    if(reshapeNeeded)
     {
-        pthread_mutex_unlock(&mline);
         reshapeNeeded = 0;
         glutReshapeWindow(w, h);
         return;
     }
 
-    pthread_mutex_lock(&mline);
-    if (iter < maxiter)
+    if(iter < maxiter)
     {
-        pthread_mutex_unlock(&mline);
         int t1, t2;
 
         t1 = glutGet(GLUT_ELAPSED_TIME);
 
         line = 0;
 
-        while (line < h || working)
+        while(line < h || working)
         {
             sched_yield();
         }
@@ -202,11 +167,11 @@ void idle(void)
         iter += iterperframe;
 
         t2 = glutGet(GLUT_ELAPSED_TIME);
-        if (t2 < t1 + 20)
+        if(t2 < t1 + 20)
         {
             iterperframe += MAX(1, iterperframe / 10);
         }
-        else if (t2 > t1 + 35 && iterperframe > 16)
+        else if(t2 > t1 + 35 && iterperframe > 16)
         {
             iterperframe -= MAX(1, iterperframe / 10);
         }
@@ -218,14 +183,12 @@ void redraw(void)
 {
     int x, y;
     int index = 0;
-    pthread_mutex_lock(&mline);
-    for (y = 0; y < h; y++)
+    for(y = 0; y < h; y++)
     {
-        for (x = 0; x < w; x++)
+        for(x = 0; x < w; x++)
         {
-            pthread_mutex_unlock(&mline);
             index++;
-            if (istore[index])
+            if(istore[index])
             {
                 tex[index] = color(istore[index]);
             }
@@ -236,22 +199,20 @@ void redraw(void)
 
 void autoColor(void)
 {
-    int x, y;
-    int index = 0;
-    int *numpix;
-    int lowest = maxiter;
+    int  x, y;
+    int  index = 0;
+    int* numpix;
+    int  lowest = maxiter;
 
     numpix = malloc(maxiter * sizeof(int));
     memset(numpix, 0, maxiter * sizeof(int));
-    pthread_mutex_lock(&mline);
-    for (y = 0; y < h; y++)
+    for(y = 0; y < h; y++)
     {
-        for (x = 0; x < w; x++)
+        for(x = 0; x < w; x++)
         {
-            pthread_mutex_unlock(&mline);
             index++;
-            numpix[LIMIT((int)istore[index], 0, maxiter - 1)]++;
-            if (istore[index] > 1.02e-23)
+            numpix[LIMIT((int)istore[index],0,maxiter-1)]++;
+            if(istore[index] > 1.02e-23)
             {
                 lowest = MIN(lowest, (int)istore[index]);
             }
@@ -259,21 +220,17 @@ void autoColor(void)
     }
     x = 0;
     y = h * w / 500; // 0.2 % white pixels allowed
-    pthread_mutex_lock(&mline);
-    for (index = maxiter - 1; index >= 0; --index)
+    for(index = maxiter - 1; index >= 0; --index)
     {
-        pthread_mutex_unlock(&mline);
         x += numpix[index];
-        if (x > y)
+        if(x > y)
         {
             enditer = index;
             break;
         }
     }
-    pthread_mutex_lock(&mline);
-    if (lowest != maxiter)
+    if(lowest != maxiter)
     {
-        pthread_mutex_unlock(&mline);
         double c = 0.05;
         startiter = (int)((lowest - c * enditer) / (1.0 - c));
     }
@@ -292,10 +249,8 @@ void drawFps(void)
     frameCounter++;
     time = glutGet(GLUT_ELAPSED_TIME);
 
-    pthread_mutex_lock(&mline);
-    if (time > timeOld + 500)
+    if(time > timeOld + 500)
     {
-        pthread_mutex_unlock(&mline);
         dfps = frameCounter * 1000.0 / (time - timeOld);
 
         frameCounter = 0;
@@ -344,10 +299,8 @@ void drawIter(void)
     sprintf(buffer, "pf %d", iterperframe);
     glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
-    pthread_mutex_lock(&mline);
-    if (renderpipe)
+    if(renderpipe)
     {
-        pthread_mutex_unlock(&mline);
         glRasterPos2i(10, h - 50);
         glutBitmapString(GLUT_BITMAP_9_BY_15, renderstate);
     }
@@ -355,45 +308,33 @@ void drawIter(void)
     glRasterPos2i(10, h - 35);
     index = len = 0;
     len = snprintf(buffer, 128, "height ");
-    if (len >= 0 && (index += len) < 128)
-        len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", scale);
-    if (len >= 0 && (index += len) < 128)
-        len = snprintf(buffer + index, 512 - index, " (zoom ");
-    if (len >= 0 && (index += len) < 128)
-        len = quadmath_snprintf(buffer + index, 128 - index, "%.2Qe", 1.0 / scale);
-    if (len >= 0 && (index += len) < 128)
-        len = snprintf(buffer + index, 512 - index, ")");
+    if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", scale);
+    if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, " (zoom ");
+    if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.2Qe", 1.0 / scale);
+    if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, ")");
     glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
     glRasterPos2i(10, h - 20);
     index = len = 0;
     len = snprintf(buffer, 128, "center ");
-    if (len >= 0 && (index += len) < 128)
-        len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", center.r);
-    if (len >= 0 && (index += len) < 128)
-        len = snprintf(buffer + index, 512 - index, " + i * ");
-    if (len >= 0 && (index += len) < 128)
-        len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", center.i);
+    if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", center.r);
+    if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, " + i * ");
+    if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", center.i);
     glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 
     glRasterPos2i(10, h - 5);
     index = len = 0;
     len = snprintf(buffer, 128, "pointer ");
-    if (len >= 0 && (index += len) < 128)
-        len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", pointer.r);
-    if (len >= 0 && (index += len) < 128)
-        len = snprintf(buffer + index, 512 - index, " + i * ");
-    if (len >= 0 && (index += len) < 128)
-        len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", pointer.i);
+    if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", pointer.r);
+    if(len >=0 && (index += len) < 128) len = snprintf(buffer + index, 512 - index, " + i * ");
+    if(len >=0 && (index += len) < 128) len = quadmath_snprintf(buffer + index, 128 - index, "%.36Qf", pointer.i);
     glutBitmapString(GLUT_BITMAP_9_BY_15, buffer);
 }
 
 void draw(void)
 {
-    pthread_mutex_lock(&mline);
-    if (redrawflag && glutGet(GLUT_ELAPSED_TIME) - lastchange > 500)
+    if(redrawflag && glutGet(GLUT_ELAPSED_TIME) - lastchange > 500)
     {
-        pthread_mutex_unlock(&mline);
         redraw();
         redrawflag = 0;
     }
@@ -403,19 +344,19 @@ void draw(void)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
     glBegin(GL_TRIANGLE_STRIP);
-    glTexCoord2d(0, 0);
-    glVertex2d(0, 0);
-    glTexCoord2d(1, 0);
-    glVertex2d(w, 0);
-    glTexCoord2d(0, 1);
-    glVertex2d(0, h);
-    glTexCoord2d(1, 1);
-    glVertex2d(w, h);
+    glTexCoord2d(0,0);
+    glVertex2d(0,0);
+    glTexCoord2d(1,0);
+    glVertex2d(w,0);
+    glTexCoord2d(0,1);
+    glVertex2d(0,h);
+    glTexCoord2d(1,1);
+    glVertex2d(w,h);
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
 
-    if (mpress)
+    if(mpress)
     {
         glColor3f(1.0, 1.0, 1.0);
         glBegin(GL_LINE_LOOP);
@@ -432,15 +373,13 @@ void draw(void)
     glutSwapBuffers();
 }
 
-void *pipereader(void *a)
+void* pipereader(void* a)
 {
-    for (;;)
+    for(;;)
     {
-        pthread_mutex_lock(&mline);
-        if (renderpipe)
+        if(renderpipe)
         {
-            pthread_mutex_unlock(&mline);
-            if (!fgets(renderstate, 255, renderpipe))
+            if(!fgets(renderstate, 255, renderpipe))
             {
                 fclose(renderpipe);
                 renderpipe = NULL;
@@ -455,7 +394,7 @@ void *pipereader(void *a)
 
 void render(void)
 {
-    if (!renderpipe)
+    if(!renderpipe)
     {
         char buffer[512];
         int index, len;
@@ -463,21 +402,17 @@ void render(void)
 
         index = 0;
         len = snprintf(buffer, 512, "./mandelbrot_render-f128 12 %d %d ", w * 8, h * 8);
-        if (len >= 0 && (index += len) < 512)
-            len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", center.r);
-        if (len >= 0 && (index += len) < 512)
-            len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", center.i);
-        if (len >= 0 && (index += len) < 512)
-            len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", scale);
-        if (len >= 0 && (index += len) < 512)
-            snprintf(buffer + index, 512 - index, "%d %d %d %lf %lf %lf", startiter, enditer, maxiter, er, eg, eb);
+        if(len >=0 && (index += len) < 512) len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", center.r);
+        if(len >=0 && (index += len) < 512) len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", center.i);
+        if(len >=0 && (index += len) < 512) len = quadmath_snprintf(buffer + index, 512 - index, "%.36Qf", scale);
+        if(len >=0 && (index += len) < 512) snprintf(buffer + index, 512 - index, "%d %d %d %lf %lf %lf", startiter, enditer, maxiter, er, eg, eb);
         renderpipe = popen(buffer, "r");
     }
 }
 
 static void key(unsigned char key, int x, int y)
 {
-    switch (key)
+    switch(key)
     {
         case 27:
             glutLeaveMainLoop();
@@ -568,10 +503,8 @@ static void key(unsigned char key, int x, int y)
 
 void mouseMotion(int x, int y)
 {
-    pthread_mutex_lock(&mline);
-    if (mpress)
+    if(mpress)
     {
-        pthread_mutex_unlock(&mline);
         mpressx2 = x;
         mpressy2 = y;
     }
@@ -586,10 +519,10 @@ void mouseMotionP(int x, int y)
 
 void mouse(int button, int state, int x, int y)
 {
-    switch (button)
+    switch(button)
     {
         case GLUT_LEFT_BUTTON:
-            if (state == GLUT_DOWN)
+            if(state == GLUT_DOWN)
             {
                 mpress = 1;
                 mpressx1 = x;
@@ -614,7 +547,7 @@ void mouse(int button, int state, int x, int y)
             }
             break;
         case GLUT_RIGHT_BUTTON:
-            if (state == GLUT_UP)
+            if(state == GLUT_UP)
             {
                 center.r += (x - w / 2) * scale / h;
                 center.i += (y - h / 2) * scale / h;
@@ -623,7 +556,7 @@ void mouse(int button, int state, int x, int y)
             }
             break;
         default:
-            if (state == GLUT_UP)
+            if(state == GLUT_UP)
             {
                 center.r += (x - w / 2) * scale / h;
                 center.i += (y - h / 2) * scale / h;
@@ -636,7 +569,7 @@ static void reshape(int ww, int wh)
 {
     w = (ww / 8) * 8;
     h = wh;
-    if (w != ww)
+    if(w != ww)
     {
         reshapeNeeded = 1;
     }
@@ -649,12 +582,9 @@ static void reshape(int ww, int wh)
     glLoadIdentity();
     glViewport(0, 0, w, h);
 
-    if (cstore)
-        free(cstore);
-    if (istore)
-        free(istore);
-    if (tex)
-        free(tex);
+    if(cstore) free(cstore);
+    if(istore) free(istore);
+    if(tex) free(tex);
 
     cstore = malloc(sizeof(complex) * w * h);
     istore = malloc(sizeof(double) * w * h);
@@ -663,15 +593,15 @@ static void reshape(int ww, int wh)
     clear();
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     int i;
     pthread_t thread;
 
-    pthread_mutex_init(&mline, NULL);
+    pthread_mutex_init(&mline,    NULL);
     pthread_mutex_init(&mworking, NULL);
 
-    for (i = 0; i < 12; ++i)
+    for(i = 0; i < 12; ++i)
     {
         pthread_create(&thread, NULL, trender, NULL);
     }
