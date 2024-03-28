@@ -891,7 +891,9 @@ It can be seen that helgrind detected a lot of data races. After examining the c
 ==3662== ERROR SUMMARY: 17040 errors from 15 contexts (suppressed: 16901 from 72)
 ```
 </details>
+
 After adding a few mutexes the number of errors reduced significantly
+
 ## mandlebrot-f128
 
 <details>
