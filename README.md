@@ -1,3 +1,4 @@
+
 ## mandelbrot
 mandelbrot fractal explorer and renderer
 
@@ -2158,6 +2159,79 @@ After adding more mutexes almoset all the data races were gone
 ==3141== the cost of reduced accuracy of conflicting-access information
 ==3141== For lists of detected and suppressed errors, rerun with: -s
 ==3141== ERROR SUMMARY: 10000000 errors from 29 contexts (suppressed: 10319 from 55)
+```
+</details>
+
+The same situtation as mandlebrot-f128, the same shared resources are accessed by multiple threads
+
+<details>
+<summary>helgrind report (before fixes)</summary>
+
+```
+==4135== Helgrind, a thread error detector
+==4135== Copyright (C) 2007-2017, and GNU GPL'd, by OpenWorks LLP et al.
+==4135== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==4135== Command: ./mandelbrot-ld
+==4135== 
+==4135== ---Thread-Announcement------------------------------------------
+==4135== 
+==4135== Thread #1 is the program's root thread
+==4135== 
+==4135== ----------------------------------------------------------------
+==4135== 
+==4135== Thread #1: Attempt to re-lock a non-recursive lock I already hold
+==4135==    at 0x4850C04: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==4135==    by 0x10BC0A: drawFps (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x10C196: draw (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x492172A: ??? (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x49250C0: fgEnumWindows (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4921CBA: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4922578: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x10A7FB: main (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==  Lock was previously acquired
+==4135==    at 0x4850CCF: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==4135==    by 0x10C060: draw (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x492172A: ??? (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x49250C0: fgEnumWindows (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4921CBA: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4922578: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x10A7FB: main (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135== 
+^C==4135== 
+==4135== Process terminating with default action of signal 2 (SIGINT)
+==4135==    at 0x4AC42C0: futex_wait (futex-internal.h:146)
+==4135==    by 0x4AC42C0: __lll_lock_wait (lowlevellock.c:49)
+==4135==    by 0x4ACB001: lll_mutex_lock_optimized (pthread_mutex_lock.c:48)
+==4135==    by 0x4ACB001: pthread_mutex_lock@@GLIBC_2.2.5 (pthread_mutex_lock.c:93)
+==4135==    by 0x4850C66: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==4135==    by 0x10BC0A: drawFps (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x10C196: draw (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x492172A: ??? (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x49250C0: fgEnumWindows (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4921CBA: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4922578: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x10A7FB: main (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135== ----------------------------------------------------------------
+==4135== 
+==4135== Thread #1: Exiting thread still holds 1 lock
+==4135==    at 0x4AC42C0: futex_wait (futex-internal.h:146)
+==4135==    by 0x4AC42C0: __lll_lock_wait (lowlevellock.c:49)
+==4135==    by 0x4ACB001: lll_mutex_lock_optimized (pthread_mutex_lock.c:48)
+==4135==    by 0x4ACB001: pthread_mutex_lock@@GLIBC_2.2.5 (pthread_mutex_lock.c:93)
+==4135==    by 0x4850C66: ??? (in /usr/libexec/valgrind/vgpreload_helgrind-amd64-linux.so)
+==4135==    by 0x10BC0A: drawFps (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x10C196: draw (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135==    by 0x492172A: ??? (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x49250C0: fgEnumWindows (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4921CBA: glutMainLoopEvent (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x4922578: glutMainLoop (in /usr/lib/x86_64-linux-gnu/libglut.so.3.9.0)
+==4135==    by 0x10A7FB: main (in /home/pasha/mandelbrot/mandelbrot-ld)
+==4135== 
+==4135== 
+==4135== Use --history-level=approx or =none to gain increased speed, at
+==4135== the cost of reduced accuracy of conflicting-access information
+==4135== For lists of detected and suppressed errors, rerun with: -s
+==4135== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 4955 from 16)
 ```
 </details>
 
